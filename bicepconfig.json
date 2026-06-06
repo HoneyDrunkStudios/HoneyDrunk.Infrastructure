@@ -1,0 +1,54 @@
+{
+  // ==========================================================================
+  // HoneyDrunk.Infrastructure - root Bicep configuration (ADR-0077 D3)
+  // ==========================================================================
+  // SINGLE root config. Bicep resolves its config by walking the filesystem
+  // upward from each template's directory and using the first bicepconfig.json
+  // it finds, so this one file governs modules/, platform/, and nodes/{node}/
+  // uniformly. Do NOT add per-subtree configs.
+  //
+  // WHAT THIS CONFIG ENFORCES: the built-in Bicep linter rules below. Secret
+  // hygiene (ADR-0077 D7 / invariant 91) is promoted to `error` so the PR-time
+  // `bicep lint` gate (HoneyDrunk.Actions/job-bicep-lint.yml) fails on it.
+  //
+  // WHAT THIS CONFIG CANNOT EXPRESS as a global rule - and is therefore the
+  // responsibility of module authors (via parameter decorators @allowed /
+  // @minLength / @maxLength / @description) and PR review:
+  //   * Required tags on every resource (ADR-0077 D3 / invariant 92):
+  //       hd:node, hd:env, hd:owner, hd:cost-center, hd:dr-tier, hd:adr
+  //   * Naming convention (invariant 19 / ADR-0015 / ADR-0005 / ADR-0076):
+  //       <type-prefix>-hd-<service|node, <=13 chars>-<env>
+  //       e.g. ca-hd-notify-prod, kv-hd-notify-prod, redis-hd-prod, sb-hd-prod
+  //   * Secret-shaped literals (accountKey, connectionString, password, apiKey)
+  //     beyond what secure-secrets-in-params / secure-parameter-default catch.
+  // A future custom analyzer or CI grep MAY codify the tag/naming rules; until
+  // then they are an author-time + review discipline.
+  "analyzers": {
+    "core": {
+      "enabled": true,
+      "verbose": false,
+      "rules": {
+        // --- Secret hygiene: ADR-0077 D7 / invariant 91 -> error -----------
+        "secure-secrets-in-params": { "level": "error" },
+        "secure-parameter-default": { "level": "error" },
+        "secure-params-in-nested-deploy": { "level": "error" },
+        "use-secure-value-for-secure-inputs": { "level": "error" },
+        "protect-commandtoexecute-secrets": { "level": "error" },
+        "outputs-should-not-contain-secrets": { "level": "error" },
+
+        // --- Correctness / portability -------------------------------------
+        "no-hardcoded-env-urls": { "level": "error" },
+        "use-stable-resource-identifiers": { "level": "warning" },
+        "use-resource-id-functions": { "level": "warning" },
+
+        // --- API currency (off by default; surfaced as warning) ------------
+        "use-recent-api-versions": { "level": "warning" },
+
+        // --- Authoring hygiene ---------------------------------------------
+        "no-unused-params": { "level": "warning" },
+        "no-unused-vars": { "level": "warning" },
+        "prefer-interpolation": { "level": "warning" }
+      }
+    }
+  }
+}
