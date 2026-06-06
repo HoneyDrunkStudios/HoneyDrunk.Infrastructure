@@ -21,11 +21,17 @@ per [ADR-0012](https://github.com/HoneyDrunkStudios/HoneyDrunk.Architecture/blob
 ## Module references are local relative paths — there is no registry
 
 Because `modules/`, `platform/`, and `nodes/` all live in one repo checkout,
-modules are referenced by **local relative path**:
+modules are referenced by **local relative path**. The path is relative to the
+referencing template — for example, from a leaf template at
+`nodes/{node}/main.bicep`, a compute module two levels up is:
 
 ```bicep
+// in nodes/{node}/main.bicep
 module containerApp '../../modules/compute/containerApp.bicep' = { ... }
 ```
+
+(The exact `../` depth depends on where the referencing template sits; a
+`platform/` template references `../modules/...`.)
 
 There is **no** Bicep registry, **no** `acrhdbicep`, **no** `bicep-publish.yml`,
 **no** `modules/v{N}.{N}.{N}` SemVer tags, and **no** `br:` references. The
