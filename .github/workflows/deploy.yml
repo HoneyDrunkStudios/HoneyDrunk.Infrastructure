@@ -1,0 +1,133 @@
+# ==============================================================================
+# Deploy (caller)
+# ==============================================================================
+# The thin caller that makes HoneyDrunk.Infrastructure deployable. It resolves a
+# template / parameter-file / resource-group triple from the dispatch inputs and
+# hands off to the Actions reusable workflow job-deploy-bicep.yml@main, which
+# runs the bicep build + lint + what-if preflight and the `az deployment` apply.
+#
+# CADENCE (ADR-0077 D4, amended 2026-06-02): infra deploys run on this repo's OWN
+# cadence — MANUAL workflow_dispatch — decoupled from application release tags.
+# The shared foundation changes rarely and is promoted deliberately, not on every
+# app build.
+#
+# APPROVAL GATE (ADR-0033): a dedicated `gate` job declares `environment: <env>`
+# (the `environment:` key is only valid on a `steps:` job, not on a `uses:`
+# reusable-workflow caller). The `deploy` job `needs: gate`, so the chosen
+# GitHub Environment's protection rules apply — prod requires reviewers before
+# the apply proceeds.
+#
+# CREDENTIALS: OIDC federation. azure-client-id / -tenant-id / -subscription-id
+# come from repo/org **vars** (AZURE_CLIENT_ID / AZURE_TENANT_ID /
+# AZURE_SUBSCRIPTION_ID) the operator configures — never secrets. The deploy
+# identity provisions resources; it does NOT read secret values (D7 / invariant 8).
+# ==============================================================================
+
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: 'Target environment.'
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+          - prod
+      target:
+        description: 'What to deploy: the shared platform layer, or a single Node.'
+        required: true
+        type: choice
+        options:
+          - platform
+          - node
+      node:
+        description: 'Node short name (required when target=node, e.g. notify). Ignored for target=platform.'
+        required: false
+        type: string
+
+# Superset of the called workflow's needs (invariant 39):
+#   id-token: write  (OIDC federation)   contents: read  (checkout)
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  resolve:
+    name: Resolve deploy target
+    runs-on: ubuntu-latest
+    outputs:
+      template-path: ${{ steps.compute.outputs.template-path }}
+      parameters-path: ${{ steps.compute.outputs.parameters-path }}
+      resource-group: ${{ steps.compute.outputs.resource-group }}
+    steps:
+      - name: Compute template / params / resource group
+        id: compute
+        shell: bash
+        env:
+          ENV: ${{ inputs.env }}
+          TARGET: ${{ inputs.target }}
+          NODE: ${{ inputs.node }}
+        run: |
+          set -euo pipefail
+          case "$TARGET" in
+            platform)
+              TEMPLATE="platform/main.bicep"
+              PARAMS="platform/parameters.${ENV}.bicepparam"
+              RG="rg-hd-platform-${ENV}"
+              ;;
+            node)
+              if [ -z "${NODE:-}" ]; then
+                echo "::error::target=node requires the 'node' input (got empty)."
+                exit 1
+              fi
+              # Allowlist the node name BEFORE it is interpolated into template
+              # paths and resource-group names — rejects path traversal / injection.
+              if ! printf '%s' "$NODE" | grep -Eq '^[a-z][a-z0-9-]{0,28}$'; then
+                echo "::error::node '$NODE' is invalid — must match ^[a-z][a-z0-9-]{0,28}\$ (lowercase letter then lowercase alphanumerics/hyphens)."
+                exit 1
+              fi
+              TEMPLATE="nodes/${NODE}/main.bicep"
+              PARAMS="nodes/${NODE}/parameters.${ENV}.bicepparam"
+              RG="rg-hd-${NODE}-${ENV}"
+              ;;
+            *)
+              echo "::error::target must be 'platform' or 'node' (got '$TARGET')."
+              exit 1
+              ;;
+          esac
+          echo "template-path=$TEMPLATE"     >> "$GITHUB_OUTPUT"
+          echo "parameters-path=$PARAMS"     >> "$GITHUB_OUTPUT"
+          echo "resource-group=$RG"          >> "$GITHUB_OUTPUT"
+          echo "Resolved: template=$TEMPLATE params=$PARAMS rg=$RG"
+
+  gate:
+    name: Approval gate (${{ inputs.env }})
+    needs: resolve
+    runs-on: ubuntu-latest
+    # ADR-0033 approval gate. `environment:` is only valid on a `steps:` job,
+    # NOT on a `uses:` reusable-workflow caller job — so the gate lives here.
+    # The deploy job `needs: gate`, so it runs only after this environment's
+    # required reviewers approve (prod/staging gated; dev typically open).
+    environment: ${{ inputs.env }}
+    steps:
+      - run: echo "Approved deploy of ${{ inputs.target }} to ${{ inputs.env }}."
+
+  deploy:
+    name: Deploy (${{ inputs.target }} / ${{ inputs.env }})
+    needs: [resolve, gate]
+    permissions:
+      id-token: write
+      contents: read
+    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-bicep.yml@main
+    with:
+      env: ${{ inputs.env }}
+      template-path: ${{ needs.resolve.outputs.template-path }}
+      parameters-path: ${{ needs.resolve.outputs.parameters-path }}
+      deployment-scope: resourceGroup
+      resource-group: ${{ needs.resolve.outputs.resource-group }}
+      azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
+      azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
+      azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
