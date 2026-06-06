@@ -11,7 +11,8 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
   with READMEs), `platform/`, and `nodes/` tree; single root `bicepconfig.json`
   carrying the ADR-0077 D3 naming/tagging + secret-hygiene linter rules across all
   three subtrees; repo `README.md` and this `CHANGELOG.md`; `.honeydrunk-review.yaml`
-  (`enabled: true`); and `.github/workflows/pr.yml` consuming the
+  (`enabled: true`); `.github/workflows/pr.yml` consuming the
   `HoneyDrunk.Actions` `job-bicep-lint.yml` gate (the Bicep-native `core` check)
-  plus `job-secret-scan.yml`. Module references are local relative path — no
-  registry, no `br:` references.
+  plus `job-secret-scan.yml`; and `.github/workflows/pr-review.yml` (the ADR-0086
+  Grid review trigger). Module references are local relative path — no registry,
+  no `br:` references.
