@@ -7,8 +7,8 @@
 // secret params (D7 / invariant 91).
 // =============================================================================
 
-@description('Service or Node short name; feeds the resource name.')
-@maxLength(13)
+@description('Service or Node short name; feeds the resource name. Capped at 10 so kv-hd-<service>-<env> stays within the 24-char Key Vault name limit.')
+@maxLength(10)
 param service string
 
 @description('Target environment.')
@@ -33,10 +33,9 @@ param logAnalyticsWorkspaceId string
 @maxValue(90)
 param softDeleteRetentionInDays int = 90
 
-// Vault names are <=24 chars. 'kv-hd-' (6) + service (<=13) + '-' + env can
-// exceed 24 for long services in staging (e.g. kv-hd-<13>-staging = 26). Long
-// service names must pass a shorter `service` at the call site; @maxLength(13)
-// is the only enforcement here (see README note).
+// Vault names are <=24 chars. Fixed parts: 'kv-hd-' (6) + the longest env
+// suffix '-staging' (8) = 14, so `service` is capped at @maxLength(10) above —
+// kv-hd-<10>-staging = 24 exactly, so the composed name can never overflow.
 var name = 'kv-hd-${service}-${env}'
 
 resource keyVault 'Microsoft.KeyVault/vaults@2024-11-01' = {

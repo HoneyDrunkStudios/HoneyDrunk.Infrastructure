@@ -11,9 +11,11 @@
 # The shared foundation changes rarely and is promoted deliberately, not on every
 # app build.
 #
-# APPROVAL GATE (ADR-0033): the `deploy` job declares `environment: <env>`, so
-# the chosen GitHub Environment's protection rules apply — prod requires
-# reviewers before the apply proceeds.
+# APPROVAL GATE (ADR-0033): a dedicated `gate` job declares `environment: <env>`
+# (the `environment:` key is only valid on a `steps:` job, not on a `uses:`
+# reusable-workflow caller). The `deploy` job `needs: gate`, so the chosen
+# GitHub Environment's protection rules apply — prod requires reviewers before
+# the apply proceeds.
 #
 # CREDENTIALS: OIDC federation. azure-client-id / -tenant-id / -subscription-id
 # come from repo/org **vars** (AZURE_CLIENT_ID / AZURE_TENANT_ID /
@@ -95,11 +97,21 @@ jobs:
           echo "resource-group=$RG"          >> "$GITHUB_OUTPUT"
           echo "Resolved: template=$TEMPLATE params=$PARAMS rg=$RG"
 
+  gate:
+    name: Approval gate (${{ inputs.env }})
+    needs: resolve
+    runs-on: ubuntu-latest
+    # ADR-0033 approval gate. `environment:` is only valid on a `steps:` job,
+    # NOT on a `uses:` reusable-workflow caller job — so the gate lives here.
+    # The deploy job `needs: gate`, so it runs only after this environment's
+    # required reviewers approve (prod/staging gated; dev typically open).
+    environment: ${{ inputs.env }}
+    steps:
+      - run: echo "Approved deploy of ${{ inputs.target }} to ${{ inputs.env }}."
+
   deploy:
     name: Deploy (${{ inputs.target }} / ${{ inputs.env }})
-    needs: resolve
-    # ADR-0033 environment approval gate — prod requires reviewers.
-    environment: ${{ inputs.env }}
+    needs: [resolve, gate]
     permissions:
       id-token: write
       contents: read

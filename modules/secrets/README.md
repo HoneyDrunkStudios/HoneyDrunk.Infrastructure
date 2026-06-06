@@ -32,16 +32,16 @@ policies** (`accessPolicies: []`) (invariant 17). `standard` sku,
 the vault routes `AuditEvent` logs + `AllMetrics` to the shared Log Analytics
 workspace (invariant 22) — the workspace is consumed by ID, **not** created.
 
-> **Name length:** Key Vault names are ≤ 24 chars. `kv-hd-` (6) + a 13-char
-> `service` + `-staging` (8) = 27, which exceeds 24. `@maxLength(13)` is the
-> only enforcement here; **long service names must pass a shorter `service` at
-> the call site** for the `staging`/`prod` environments.
+> **Name length:** Key Vault names are ≤ 24 chars. The fixed parts —
+> `kv-hd-` (6) + the longest env suffix `-staging` (8) — total 14, so `service`
+> is capped at **`@maxLength(10)`** (`kv-hd-<10>-staging` = 24 exactly). The
+> module contract therefore guarantees the composed name can never overflow.
 
 ### Parameters
 
 | Param | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `service` | string | — | `@maxLength(13)`; feeds `kv-hd-<service>-<env>`. See name-length note. |
+| `service` | string | — | `@maxLength(10)`; feeds `kv-hd-<service>-<env>`. See name-length note. |
 | `env` | string | — | `@allowed('dev','staging','prod')`. |
 | `location` | string | `resourceGroup().location` | |
 | `tags` | object | — | Required Grid tags; applied to every resource. |
