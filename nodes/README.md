@@ -15,9 +15,10 @@ nodes/
     parameters.prod.bicepparam
 ```
 
-- **`main.bicep`** references the reusable [`../../modules/`](../modules) by
-  **local relative path** (e.g. `module app '../../modules/compute/containerApp.bicep'`)
-  and consumes the [`../../platform/`](../platform) **exported resource IDs** —
+- **`main.bicep`** references the reusable modules in [`modules/`](../modules) by
+  **local relative path from the leaf template**. From `nodes/{node}/main.bicep`
+  (two levels deep) that is `module app '../../modules/compute/containerApp.bicep'`.
+  It also consumes the [`platform/`](../platform) **exported resource IDs** —
   never hand-pasted ARM strings.
 - **`parameters.{env}.bicepparam`** carries per-environment sizing / naming /
   regional pinning. Its `using` directive points at the sibling `main.bicep`, so
