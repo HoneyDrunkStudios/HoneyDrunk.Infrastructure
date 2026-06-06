@@ -74,15 +74,22 @@ module vault '../../modules/secrets/keyVault.bicep' = {
 
 ## `appConfigurationStore.bicep`
 
-`Microsoft.AppConfiguration/configurationStores@2024-06-01`. Produces
-`appcs-hd-<service>-<env>`, `standard` sku.
+`Microsoft.AppConfiguration/configurationStores@2024-06-01`. Produces the
+**single shared** store per environment, `appcs-hd-shared-<env>`, `standard` sku.
+
+> **Shared, not per-Node (ADR-0005).** App Configuration is **one shared store
+> per environment**, label-partitioned per Node, read-only at runtime via
+> Managed Identity. It is therefore a `platform/`-owned shared-foundation
+> resource (provisioned by `platform/main.bicep`), not a per-Node resource — so
+> the module takes **no `service` param**. Local auth (access keys /
+> connection strings) is **disabled** (`disableLocalAuth: true`); access is
+> MI/RBAC only.
 
 ### Parameters
 
 | Param | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `service` | string | — | `@maxLength(13)`; feeds `appcs-hd-<service>-<env>`. |
-| `env` | string | — | `@allowed('dev','staging','prod')`. |
+| `env` | string | — | `@allowed('dev','staging','prod')`; feeds `appcs-hd-shared-<env>`. |
 | `location` | string | `resourceGroup().location` | |
 | `tags` | object | — | Required Grid tags; applied to every resource. |
 | `sku` | string | `'standard'` | `@allowed('free','standard')`. |
@@ -91,17 +98,17 @@ module vault '../../modules/secrets/keyVault.bicep' = {
 
 | Output | Type | Notes |
 | --- | --- | --- |
-| `endpoint` | string | Data-plane endpoint (`https://<name>.azconfig.io`). |
+| `endpoint` | string | Data-plane endpoint (`https://<name>.azconfig.io`); reaches Nodes as `AZURE_APPCONFIG_ENDPOINT` (invariant 18). |
 | `id` | string | Resource ID. |
 | `name` | string | Resource name. |
 
 ### Reference example
 
 ```bicep
-module appcs '../../modules/secrets/appConfigurationStore.bicep' = {
-  name: 'identityAppConfig'
+// In platform/main.bicep — the shared store, provisioned once per env.
+module appcs '../modules/secrets/appConfigurationStore.bicep' = {
+  name: 'platform-appcs'
   params: {
-    service: 'identity'
     env: env
     tags: tags
   }

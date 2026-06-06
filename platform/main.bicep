@@ -7,6 +7,8 @@
 //   - Container Apps Environment (cae-hd-{env})        — joins the workspace.
 //   - container-image ACR        (acrhdshared{env})    — the only ACR.
 //   - shared Service Bus         (sb-hd-shared-{env})  — service='shared'.
+//   - shared App Configuration   (appcs-hd-shared-{env}) — one per env, MI-only
+//                                                          (ADR-0005).
 //
 // Every shared resource's id is EXPORTED as an output: per-Node leaf templates
 // under nodes/{node}/ reference these outputs instead of hand-pasting ARM
@@ -74,6 +76,16 @@ module serviceBusNamespace '../modules/messaging/serviceBusNamespace.bicep' = {
   }
 }
 
+// --- shared App Configuration (appcs-hd-shared-{env}) — ADR-0005, MI-only -----
+module appConfigurationStore '../modules/secrets/appConfigurationStore.bicep' = {
+  name: 'platform-appcs'
+  params: {
+    env: env
+    location: location
+    tags: tags
+  }
+}
+
 @description('Shared Log Analytics workspace resource ID — the canonical reference for per-Node diagnostics and App Insights.')
 output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.outputs.id
 
@@ -88,3 +100,9 @@ output containerRegistryLoginServer string = containerRegistry.outputs.loginServ
 
 @description('Shared Service Bus namespace resource ID — the canonical reference for per-Node queue/topic + RBAC wiring.')
 output serviceBusNamespaceId string = serviceBusNamespace.outputs.id
+
+@description('Shared App Configuration store resource ID (ADR-0005) — the canonical reference for per-Node Managed-Identity read access.')
+output appConfigurationStoreId string = appConfigurationStore.outputs.id
+
+@description('Shared App Configuration endpoint — reaches Nodes as AZURE_APPCONFIG_ENDPOINT (invariant 18).')
+output appConfigurationEndpoint string = appConfigurationStore.outputs.endpoint

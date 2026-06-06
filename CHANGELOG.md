@@ -45,8 +45,9 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
   `AllMetrics` diagnostics to the shared Log Analytics workspace via
   `Microsoft.Insights/diagnosticSettings@2021-05-01-preview` — invariants 17/22),
   `secrets/appConfigurationStore.bicep`
-  (`Microsoft.AppConfiguration/configurationStores@2024-06-01`;
-  `appcs-hd-<service>-<env>`),
+  (`Microsoft.AppConfiguration/configurationStores@2024-06-01`; the single
+  shared `appcs-hd-shared-<env>` store per ADR-0005, MI-only / local auth
+  disabled, provisioned by `platform/`),
   `data/storageAccount.bicep` (`Microsoft.Storage/storageAccounts@2024-01-01`;
   hyphen-free `sthd<service><env>`, StorageV2, TLS1_2, blob public access off),
   `messaging/serviceBusNamespace.bicep`

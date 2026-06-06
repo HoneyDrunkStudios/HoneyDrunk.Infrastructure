@@ -83,6 +83,12 @@ jobs:
                 echo "::error::target=node requires the 'node' input (got empty)."
                 exit 1
               fi
+              # Allowlist the node name BEFORE it is interpolated into template
+              # paths and resource-group names — rejects path traversal / injection.
+              if ! printf '%s' "$NODE" | grep -Eq '^[a-z][a-z0-9-]{0,28}$'; then
+                echo "::error::node '$NODE' is invalid — must match ^[a-z][a-z0-9-]{0,28}\$ (lowercase letter then lowercase alphanumerics/hyphens)."
+                exit 1
+              fi
               TEMPLATE="nodes/${NODE}/main.bicep"
               PARAMS="nodes/${NODE}/parameters.${ENV}.bicepparam"
               RG="rg-hd-${NODE}-${ENV}"
