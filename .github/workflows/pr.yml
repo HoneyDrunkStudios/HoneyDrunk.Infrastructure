@@ -1,0 +1,38 @@
+name: PR
+
+# ==============================================================================
+# PR gate for HoneyDrunk.Infrastructure (ADR-0077 packet 11).
+#
+# This repo ships Bicep + YAML, NOT .NET. The Grid's .NET-shaped `pr-core.yml`
+# hard-fails on a project-less repo (its `dotnet restore` errors with "No
+# project or solution file found"), so the `core` gate here is the Bicep-native
+# `job-bicep-lint.yml` reusable workflow (ADR-0077 packet 07), brought forward
+# for exactly this consumer. `job-secret-scan.yml` adds gitleaks diff-scanning
+# in support of ADR-0077 D7 / invariant 91 (no secret values in templates).
+#
+# Both reusable workflows live in HoneyDrunk.Actions per ADR-0012 (the pipeline
+# is the CI/CD control plane); this repo consumes them. The caller permissions
+# below are a superset of each callee's declared permissions (invariant 39).
+# ==============================================================================
+
+on:
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  bicep-lint:
+    name: Bicep Lint
+    permissions:
+      contents: read
+    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-bicep-lint.yml@main
+
+  secret-scan:
+    name: Secret Scan
+    permissions:
+      contents: read
+    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-secret-scan.yml@main
+    with:
+      scan-mode: diff-only
