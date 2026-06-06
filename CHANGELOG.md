@@ -7,6 +7,34 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Added
 
+- Platform shared-foundation layer + deploy caller (ADR-0077 packet 14):
+  `platform/main.bicep` composes the per-env shared foundation into
+  `rg-hd-platform-{env}` — Log Analytics (`log-hd-shared-{env}`,
+  `Microsoft.OperationalInsights/workspaces@2025-07-01`, `PerGB2018`), the
+  Container Apps Environment (`cae-hd-{env}`,
+  `Microsoft.App/managedEnvironments@2025-07-01`), the container-image ACR
+  (`acrhdshared{env}`, `Microsoft.ContainerRegistry/registries@2025-11-01`,
+  `adminUserEnabled: false`, invariant 35), and the shared Service Bus
+  (`sb-hd-shared-{env}`, reusing the packet-13 `serviceBusNamespace.bicep` with
+  `service: 'shared'`) — and **exports their resource IDs**
+  (`logAnalyticsWorkspaceId`, `containerAppEnvironmentId`, `containerRegistryId`,
+  `containerRegistryLoginServer`, `serviceBusNamespaceId`) as the canonical
+  reference for per-Node leaf templates (closes the hand-pasted-ARM-ID gap).
+  Three new platform modules — `observability/logAnalyticsWorkspace.bicep`,
+  `compute/containerAppEnvironment.bicep`, `data/containerRegistry.bicep`. The
+  Container Apps Environment routes logs via the `azure-monitor` destination +
+  a child `Microsoft.Insights/diagnosticSettings@2021-05-01-preview` referencing
+  the workspace by ID — NO Log Analytics `sharedKey` in the template (D7). Per-env
+  `platform/parameters.{dev,staging,prod}.bicepparam`, tagged
+  `hd:node=honeydrunk-infrastructure` / `hd:cost-center=core-infra`. Existing
+  `dev` resources grandfather via `what-if` no-op import (D6). Adds
+  `.github/workflows/deploy.yml` — the `workflow_dispatch` caller that resolves
+  template/params/RG by `target` (`platform`|`node`) + `env` and invokes the
+  Actions `job-deploy-bicep.yml@main` behind the ADR-0033 environment approval
+  gate (OIDC creds from repo/org vars). `platform/README.md` documents the
+  shared-foundation resources, the `rg-hd-platform-{env}` /
+  `rg-hd-platform-shared` RG model, the D6 grandfather/import posture, and the
+  exported-ID convention.
 - First per-concern Bicep module set (ADR-0077 packet 13): six reusable modules
   consumed by local relative path (no registry) —
   `compute/containerApp.bicep` (`Microsoft.App/containerApps@2025-07-01`;
