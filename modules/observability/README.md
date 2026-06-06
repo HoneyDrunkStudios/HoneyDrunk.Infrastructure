@@ -38,15 +38,16 @@ Analytics workspace by ID — it does **not** create the workspace.
 
 | Output | Type | Notes |
 | --- | --- | --- |
-| `instrumentationKey` | string | Telemetry-destination identifier (not a credential). |
-| `connectionString` | string | Preferred SDK wiring (not a credential). |
 | `id` | string | Resource ID. |
 | `name` | string | Resource name. |
 
-> The `instrumentationKey` / `connectionString` outputs are telemetry-
-> destination identifiers, not secret credentials, so the module silences the
-> `outputs-should-not-contain-secrets` linter rule on `instrumentationKey` with
-> an inline comment. No raw secret params are taken (ADR-0077 D7 / invariant 91).
+> **No connection string / instrumentation key outputs.** Per ADR-0040 and
+> ADR-0077 D7, the App Insights connection string and instrumentation key are
+> Vault-held credentials and are **not** exposed as deployment outputs (which
+> would surface them in `az deployment ... outputs` and CI logs). Consumers
+> obtain the connection string via the Key Vault reference pattern (store it as
+> a `keyVaultSecret`, inject by URI) or via Entra-based ingestion auth. The
+> module takes no raw secret params (invariant 91).
 
 ### Reference example
 

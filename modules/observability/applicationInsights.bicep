@@ -39,12 +39,13 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
-@description('Application Insights instrumentation key (telemetry destination identifier, not a credential).')
-#disable-next-line outputs-should-not-contain-secrets // InstrumentationKey is a telemetry-destination identifier, not a secret credential.
-output instrumentationKey string = appInsights.properties.InstrumentationKey
-
-@description('Application Insights connection string (the preferred SDK wiring; not a credential).')
-output connectionString string = appInsights.properties.ConnectionString
+// Per ADR-0040 / ADR-0077 D7, the Application Insights connection string and
+// instrumentation key are Vault-held credentials and are intentionally NOT
+// exposed as deployment outputs (outputs surface in `az deployment ... outputs`
+// and CI logs). Consumers obtain the connection string via the Key Vault
+// reference pattern (store it as a keyVaultSecret and inject by URI) or via
+// Entra-based ingestion auth — never from a plain module output. The module
+// exposes only the non-secret identifiers below.
 
 @description('The Application Insights component resource ID.')
 output id string = appInsights.id
