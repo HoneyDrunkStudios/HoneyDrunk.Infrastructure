@@ -46,8 +46,10 @@ param bootstrap bool = false
 
 // Public placeholder for the bootstrap pass — listens on :80, needs no registry
 // auth or secrets, so the first revision of a fresh system-MI app is healthy with
-// zero RBAC (which is what lets the role-assignment grants then run).
-var bootstrapImage = 'mcr.microsoft.com/azuredocs/aci-helloworld:latest'
+// zero RBAC (which is what lets the role-assignment grants then run). Pinned to an
+// immutable digest (not a floating `:latest`) so the bootstrap path is
+// reproducible and can't drift/404 — Microsoft's aci-helloworld sample image.
+var bootstrapImage = 'mcr.microsoft.com/azuredocs/aci-helloworld@sha256:456a1150aa41340a14c7be1342deda2cde9e6e7df9fde6b8a69de0ae04f92fad'
 var bootstrapTargetPort = 80
 var realTargetPort = 8080
 
