@@ -51,6 +51,10 @@ resource storage 'Microsoft.Storage/storageAccounts@2024-01-01' = {
     minimumTlsVersion: 'TLS1_2'
     allowBlobPublicAccess: false
     supportsHttpsTrafficOnly: true
+    // Account-key / shared-key auth disabled — Entra (Managed Identity) + RBAC
+    // only, matching the no-local-auth posture (KV RBAC-only, App Config
+    // disableLocalAuth). Consumers authenticate with their managed identity.
+    allowSharedKeyAccess: false
   }
 }
 

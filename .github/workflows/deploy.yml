@@ -47,6 +47,14 @@ on:
         description: 'Node short name (required when target=node, e.g. notify). Ignored for target=platform.'
         required: false
         type: string
+      mode:
+        description: 'plan = what-if dry run only (review, nothing applied). apply = actually deploy. Defaults to plan.'
+        required: true
+        type: choice
+        default: plan
+        options:
+          - plan
+          - apply
 
 # Superset of the called workflow's needs (invariant 39):
 #   id-token: write  (OIDC federation)   contents: read  (checkout)
@@ -128,6 +136,7 @@ jobs:
       parameters-path: ${{ needs.resolve.outputs.parameters-path }}
       deployment-scope: resourceGroup
       resource-group: ${{ needs.resolve.outputs.resource-group }}
+      what-if-only: ${{ inputs.mode == 'plan' }}
       azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
       azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
       azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
