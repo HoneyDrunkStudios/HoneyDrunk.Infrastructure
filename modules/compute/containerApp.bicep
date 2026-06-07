@@ -8,6 +8,27 @@
 // never passed as a literal value.
 // =============================================================================
 
+// --- Sealed parameter types (D7): reject any extra/inline-literal properties ---
+@sealed()
+@description('A Container App secret that is a Key Vault reference resolved by the system-assigned identity. Sealed — no literal `value` field is permitted (D7 / invariant 91).')
+type keyVaultReferenceSecret = {
+  @description('Secret name, referenced from an env var via secretRef.')
+  name: string
+  @description('Always \'system\' — the system-assigned managed identity resolves the reference.')
+  identity: 'system'
+  @description('Full Key Vault secret URI (https://<vault>.vault.azure.net/secrets/<name>).')
+  keyVaultUrl: string
+}
+
+@sealed()
+@description('A private registry the app pulls from, authenticated by the system-assigned identity. Sealed — no password/credential field is permitted (D7).')
+type systemIdentityRegistry = {
+  @description('Registry login server, e.g. acrhdshareddev.azurecr.io.')
+  server: string
+  @description('Always \'system\' — the system-assigned managed identity authenticates the pull.')
+  identity: 'system'
+}
+
 @description('Service or Node short name; feeds the resource name.')
 @maxLength(13)
 param service string
@@ -70,11 +91,11 @@ param memory string = '1.0Gi'
 @description('Container environment variables. Each entry is { name, value } or { name, secretRef } — secretRef points at a `secrets` entry by name (never a literal value, D7).')
 param envVars array = []
 
-@description('Container App secrets, sourced from Key Vault by URI via the system-assigned identity. Each entry is { name, identity: \'system\', keyVaultUrl }. NO literal secret values (D7 / invariant 91).')
-param secrets array = []
+@description('Container App secrets — Key Vault references resolved by the system-assigned identity. Sealed type: ONLY { name, identity: \'system\', keyVaultUrl } is accepted, so a caller cannot smuggle a literal `value` into deployment history (D7 / invariant 91).')
+param secrets keyVaultReferenceSecret[] = []
 
-@description('Private registries the app pulls images from. Each entry is { server, identity: \'system\' } — image pull authenticated by the system-assigned managed identity (AcrPull granted by the consumer).')
-param registries array = []
+@description('Private registries the app pulls images from — image pull authenticated by the system-assigned managed identity (AcrPull granted by the consumer). Sealed type: { server, identity: \'system\' }.')
+param registries systemIdentityRegistry[] = []
 
 @description('KEDA scale rules (e.g. an azureQueue depth trigger). Empty = replica-count bounds only.')
 param scaleRules array = []

@@ -139,6 +139,8 @@ module app '../../modules/compute/containerApp.bicep' = {
     image: image
     targetPort: 8080
     externalIngress: true
+    transport: 'auto'
+    allowInsecure: false
     minReplicas: 0
     maxReplicas: 10
     cpu: '0.25'
@@ -146,6 +148,7 @@ module app '../../modules/compute/containerApp.bicep' = {
     envVars: envVars
     secrets: secrets
     registries: registries
+    scaleRules: [] // Pulse is request-driven on ingress; no KEDA trigger.
   }
 }
 

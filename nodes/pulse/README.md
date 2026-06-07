@@ -26,7 +26,7 @@ Container Apps Environment (`cae-hd-<env>`) in `rg-hd-platform-<env>`.
 
 Manual `workflow_dispatch` via `.github/workflows/deploy.yml`:
 
-```
+```text
 env=dev  target=node  node=pulse  mode=plan    # what-if dry run, review
 env=dev  target=node  node=pulse  mode=apply   # deploy
 ```
