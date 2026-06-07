@@ -5,14 +5,29 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
-### Changed
-
-- `platform/main.bicep`: parameterized the container-registry and App Configuration **SKUs** (`containerRegistrySku`, `appConfigurationSku`). The first dev what-if showed the existing `acrhdshareddev` (Basic) and `appcs-hd-shared-dev` (developer) would be *upgraded* to Standard by the module defaults; dev now sets `Basic` / `developer` to match, so the import is a tag-only no-op rather than a SKU change. `modules/secrets/appConfigurationStore.bicep` `sku` `@allowed` widened to `free` / `developer` / `standard` / `premium`.
-- `deploy.yml`: added a **`mode` input (`plan` / `apply`, default `plan`)**. `plan` runs a what-if dry run only (nothing applied); `apply` deploys. Passed through to the Actions `job-deploy-bicep.yml` as `what-if-only`, so a first run can be reviewed (confirm existing dev resources show as no-change) before touching anything. **Requires the Actions PR adding `what-if-only` to merge first.**
-- `modules/data/storageAccount.bicep`: set `allowSharedKeyAccess: false` — account-key/shared-key auth disabled, Entra (Managed Identity) + RBAC only, matching the no-local-auth posture (KV RBAC-only, App Config `disableLocalAuth`).
-
 ### Added
 
+- **First Node leaf template — `nodes/pulse`** (ADR-0077): provisions the
+  HoneyDrunk.Pulse observability collector Container App (`ca-hd-pulse-<env>`)
+  into `rg-hd-pulse-<env>`, joined to the **shared** Container Apps Environment
+  (`cae-hd-<env>`) in `rg-hd-platform-<env>`. Consumes the shared foundation
+  (`cae`, `acrhdshared<env>`, `appcs-hd-shared-<env>`) and the Node's
+  `kv-hd-pulse-<env>` by `existing` reference — no hand-pasted ARM IDs — and
+  creates only what the Node owns: the app + the RBAC its system-assigned
+  identity needs (AcrPull + App Configuration Data Reader cross-RG into the
+  platform RG; Key Vault Secrets User resource-scoped on the in-RG vault). Secret
+  material is surfaced as Key Vault references by URI (D7 / invariant 91); the
+  vault's secret *values* and App Configuration key-values are not IaC. The app's
+  `image` is param-owned (Pulse has no CD image-promotion step yet). Per-env
+  `nodes/pulse/parameters.dev.bicepparam` + `nodes/pulse/README.md` (documents the
+  immutable-environment delete-and-recreate migration and the image-ownership
+  boundary). This is the Pulse half of the CAE migration off the orphaned
+  `cae-hd-dev` in `rg-hd-notify-dev`.
+- **`modules/identity/roleAssignment.bicep`**: a generic, idempotent,
+  RG-scoped `Microsoft.Authorization/roleAssignments` module. Deploy it with a
+  `scope: resourceGroup('rg-...')` to grant a Node's Container App identity access
+  to shared resources in a *different* RG. Deterministic `guid()` name (re-deploy
+  safe); `principalType` set explicitly to tolerate a freshly-created MI.
 - Platform shared-foundation layer + deploy caller (ADR-0077 packet 14):
   `platform/main.bicep` composes the per-env shared foundation into
   `rg-hd-platform-{env}` — Log Analytics (`log-hd-shared-{env}`,
@@ -76,3 +91,15 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
   plus `job-secret-scan.yml`; and `.github/workflows/pr-review.yml` (the ADR-0086
   Grid review trigger). Module references are local relative path — no registry,
   no `br:` references.
+
+### Changed
+
+- `modules/compute/containerApp.bicep`: extended from the image-only v1 to carry
+  a real Node app — added `envVars` (`{name,value}` / `{name,secretRef}`),
+  `secrets` (Key Vault references via the system identity), `registries`
+  (system-identity image pull), `scaleRules` (KEDA), plus `containerName`,
+  `transport`, and `allowInsecure`. All default to backward-compatible values, so
+  the existing thin callers are unaffected. Still no raw secret params (D7).
+- `platform/main.bicep`: parameterized the container-registry and App Configuration **SKUs** (`containerRegistrySku`, `appConfigurationSku`). The first dev what-if showed the existing `acrhdshareddev` (Basic) and `appcs-hd-shared-dev` (developer) would be *upgraded* to Standard by the module defaults; dev now sets `Basic` / `developer` to match, so the import is a tag-only no-op rather than a SKU change. `modules/secrets/appConfigurationStore.bicep` `sku` `@allowed` widened to `free` / `developer` / `standard` / `premium`.
+- `deploy.yml`: added a **`mode` input (`plan` / `apply`, default `plan`)**. `plan` runs a what-if dry run only (nothing applied); `apply` deploys. Passed through to the Actions `job-deploy-bicep.yml` as `what-if-only`, so a first run can be reviewed (confirm existing dev resources show as no-change) before touching anything. **Requires the Actions PR adding `what-if-only` to merge first.**
+- `modules/data/storageAccount.bicep`: set `allowSharedKeyAccess: false` — account-key/shared-key auth disabled, Entra (Managed Identity) + RBAC only, matching the no-local-auth posture (KV RBAC-only, App Config `disableLocalAuth`).

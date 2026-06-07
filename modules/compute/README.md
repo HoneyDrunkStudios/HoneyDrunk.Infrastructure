@@ -34,12 +34,19 @@ Environment by resource ID — it does **not** create the environment (that is
 | `tags` | object | — | Required Grid tags (`hd:node`, `hd:env`, `hd:owner`, `hd:cost-center`, `hd:dr-tier`, `hd:adr`); applied to every resource. |
 | `containerAppEnvironmentId` | string | — | Resource ID of the shared `cae-hd-<env>`. Not created here. |
 | `image` | string | — | Container image reference. |
+| `containerName` | string | `service` | Single-container name; override only to match an existing name on import. |
 | `targetPort` | int | `8080` | Ingress target port. |
 | `externalIngress` | bool | `true` | External vs environment-internal ingress. |
+| `transport` | string | `'auto'` | `@allowed('auto','http','http2','tcp')`. |
+| `allowInsecure` | bool | `false` | Plain-HTTP ingress; keep false (env terminates TLS). |
 | `minReplicas` | int | `1` | |
 | `maxReplicas` | int | `3` | |
 | `cpu` | string | `'0.5'` | CPU cores (parsed via `json()`). |
 | `memory` | string | `'1.0Gi'` | |
+| `envVars` | array | `[]` | Container env: `{ name, value }` or `{ name, secretRef }` — never literal secret values (D7). |
+| `secrets` | array | `[]` | Key Vault references: `{ name, identity: 'system', keyVaultUrl }`. No literal secret values (D7 / invariant 91). |
+| `registries` | array | `[]` | Private registries: `{ server, identity: 'system' }` — pull authed by the system MI (AcrPull granted by the consumer). |
+| `scaleRules` | array | `[]` | KEDA scale rules (e.g. an azureQueue depth trigger). |
 
 ### Outputs
 
