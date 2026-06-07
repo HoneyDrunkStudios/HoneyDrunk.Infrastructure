@@ -3,8 +3,31 @@
 // Microsoft.App/containerApps — one Container App per Node (invariant 34).
 // System-assigned managed identity (invariant 34), Multiple revision mode
 // (invariant 36). Consumes the shared Container Apps Environment by ID; does
-// NOT create it. No raw secret params (D7 / invariant 91).
+// NOT create it. No raw secret params (D7 / invariant 91) — secret material is
+// referenced from Key Vault by URI via the `secrets` array (identity: 'system'),
+// never passed as a literal value.
 // =============================================================================
+
+// --- Sealed parameter types (D7): reject any extra/inline-literal properties ---
+@sealed()
+@description('A Container App secret that is a Key Vault reference resolved by the system-assigned identity. Sealed — no literal `value` field is permitted (D7 / invariant 91).')
+type keyVaultReferenceSecret = {
+  @description('Secret name, referenced from an env var via secretRef.')
+  name: string
+  @description('Always \'system\' — the system-assigned managed identity resolves the reference.')
+  identity: 'system'
+  @description('Full Key Vault secret URI (https://<vault>.vault.azure.net/secrets/<name>).')
+  keyVaultUrl: string
+}
+
+@sealed()
+@description('A private registry the app pulls from, authenticated by the system-assigned identity. Sealed — no password/credential field is permitted (D7).')
+type systemIdentityRegistry = {
+  @description('Registry login server, e.g. acrhdshareddev.azurecr.io.')
+  server: string
+  @description('Always \'system\' — the system-assigned managed identity authenticates the pull.')
+  identity: 'system'
+}
 
 @description('Service or Node short name; feeds the resource name.')
 @maxLength(13)
@@ -30,11 +53,26 @@ param containerAppEnvironmentId string
 @description('Container image reference (e.g. myregistry.azurecr.io/notify:1.2.3).')
 param image string
 
+@description('Name of the single container in the app template. Defaults to the service name; override only to match an existing container name on an import.')
+param containerName string = service
+
 @description('Ingress target port the container listens on.')
 param targetPort int = 8080
 
 @description('Whether ingress is reachable from outside the environment.')
 param externalIngress bool = true
+
+@description('Ingress transport (auto / http / http2 / tcp).')
+@allowed([
+  'auto'
+  'http'
+  'http2'
+  'tcp'
+])
+param transport string = 'auto'
+
+@description('Allow plain-HTTP ingress (no TLS redirect). Keep false — the environment terminates TLS.')
+param allowInsecure bool = false
 
 @description('Minimum replica count for the single container.')
 @minValue(0)
@@ -50,6 +88,18 @@ param cpu string = '0.5'
 @description('Memory allocated to the container (e.g. 1.0Gi).')
 param memory string = '1.0Gi'
 
+@description('Container environment variables. Each entry is { name, value } or { name, secretRef } — secretRef points at a `secrets` entry by name (never a literal value, D7).')
+param envVars array = []
+
+@description('Container App secrets — Key Vault references resolved by the system-assigned identity. Sealed type: ONLY { name, identity: \'system\', keyVaultUrl } is accepted, so a caller cannot smuggle a literal `value` into deployment history (D7 / invariant 91).')
+param secrets keyVaultReferenceSecret[] = []
+
+@description('Private registries the app pulls images from — image pull authenticated by the system-assigned managed identity (AcrPull granted by the consumer). Sealed type: { server, identity: \'system\' }.')
+param registries systemIdentityRegistry[] = []
+
+@description('KEDA scale rules (e.g. an azureQueue depth trigger). Empty = replica-count bounds only.')
+param scaleRules array = []
+
 var name = 'ca-hd-${service}-${env}'
 
 resource containerApp 'Microsoft.App/containerApps@2025-07-01' = {
@@ -63,26 +113,31 @@ resource containerApp 'Microsoft.App/containerApps@2025-07-01' = {
     managedEnvironmentId: containerAppEnvironmentId
     configuration: {
       activeRevisionsMode: 'Multiple'
+      secrets: secrets
+      registries: registries
       ingress: {
         external: externalIngress
         targetPort: targetPort
-        transport: 'auto'
+        transport: transport
+        allowInsecure: allowInsecure
       }
     }
     template: {
       containers: [
         {
-          name: service
+          name: containerName
           image: image
           resources: {
             cpu: json(cpu)
             memory: memory
           }
+          env: envVars
         }
       ]
       scale: {
         minReplicas: minReplicas
         maxReplicas: maxReplicas
+        rules: scaleRules
       }
     }
   }
