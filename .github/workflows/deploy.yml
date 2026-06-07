@@ -55,6 +55,11 @@ on:
         options:
           - plan
           - apply
+      bootstrap:
+        description: 'Bootstrap pass for a BRAND-NEW system-MI Node (target=node only). Runs a public placeholder image with no registry/secret wiring so the first revision is healthy before its AcrPull/Key Vault RBAC exists, while still creating the role assignments. Run once with this checked, then again unchecked (real image). Ignored for target=platform. See nodes/<node>/README.md.'
+        required: false
+        type: boolean
+        default: false
 
 # Superset of the called workflow's needs (invariant 39):
 #   id-token: write  (OIDC federation)   contents: read  (checkout)
@@ -137,6 +142,11 @@ jobs:
       deployment-scope: resourceGroup
       resource-group: ${{ needs.resolve.outputs.resource-group }}
       what-if-only: ${{ inputs.mode == 'plan' }}
+      # Bootstrap pass toggle (system-MI deadlock break) — overrides the leaf's
+      # `bootstrap` param to true. Gated on target=node: only Node leaf templates
+      # declare `bootstrap`, so forwarding it to a platform deploy (which has no
+      # such param) would fail. Empty string otherwise (no override).
+      additional-parameters: ${{ (inputs.bootstrap && inputs.target == 'node') && 'bootstrap=true' || '' }}
       azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
       azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
       azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}

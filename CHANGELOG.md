@@ -7,6 +7,18 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Added
 
+- **System-MI bootstrap pass for `nodes/pulse`** (ADR-0077): a `bootstrap` param
+  that breaks the system-assigned-MI Container App deadlock — a fresh app that
+  pulls a private image + resolves Key Vault secret refs can't deploy in one ARM
+  pass (the first revision needs AcrPull/KV RBAC, which needs the MI, which needs
+  the app, which blocks on the revision → `Operation expired`). `bootstrap=true`
+  runs a **public placeholder image** (`mcr.microsoft.com/azuredocs/aci-helloworld`,
+  port 80) with no registry/secret wiring so the first revision is healthy with
+  zero RBAC, while STILL creating the role assignments; a second pass
+  (`bootstrap=false`, default) flips to the real private image + secrets. Wired
+  through `deploy.yml`'s new `bootstrap` toggle → the Actions
+  `job-deploy-bicep.yml` `additional-parameters` passthrough (no duplicate param
+  file). `nodes/pulse/README.md` documents the two-pass from-scratch procedure.
 - **First Node leaf template — `nodes/pulse`** (ADR-0077): provisions the
   HoneyDrunk.Pulse observability collector Container App (`ca-hd-pulse-<env>`)
   into `rg-hd-pulse-<env>`, joined to the **shared** Container Apps Environment
@@ -94,6 +106,11 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Changed
 
+- `modules/compute/containerApp.bicep`: set an **explicit ingress traffic split**
+  (`latestRevision: true, weight: 100`) — invariant 36 ("Multiple revision mode
+  with explicit traffic splitting"). Matches Azure's implicit default but is now
+  declarative, and guarantees a new revision (e.g. the bootstrap→real flip) takes
+  100% traffic. Pin an older revision by overriding the weights for a rollback.
 - `modules/compute/containerApp.bicep`: extended from the image-only v1 to carry
   a real Node app — added `envVars` (`{name,value}` / `{name,secretRef}`),
   `secrets` (Key Vault references via the system identity), `registries`
