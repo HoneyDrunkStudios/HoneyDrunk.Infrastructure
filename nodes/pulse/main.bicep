@@ -51,10 +51,6 @@ var aspnetCoreEnvironment = env == 'dev' ? 'Development' : (env == 'staging' ? '
 
 var platformResourceGroup = 'rg-hd-platform-${env}'
 
-// Known at deployment start (the role-assignment name must be — BCP120 — even
-// though the principalId it grants to is only known after the app deploys).
-var appName = 'ca-hd-pulse-${env}'
-
 // --- Shared-foundation resources (existing — provisioned by platform/) --------
 resource containerAppEnvironment 'Microsoft.App/managedEnvironments@2025-07-01' existing = {
   name: 'cae-hd-${env}'
@@ -154,38 +150,41 @@ module app '../../modules/compute/containerApp.bicep' = {
 }
 
 // --- RBAC for the app's system-assigned identity ------------------------------
-// Key Vault Secrets User — INLINE, resource-scoped: the vault is in THIS RG, so
-// the grant is scoped to the vault itself (least privilege for the sensitive one).
-resource keyVaultSecretsUser 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: keyVault
-  name: guid(keyVault.id, appName, keyVaultSecretsUserRoleId)
-  properties: {
+// Each grant goes through the generic roleAssignment module, which folds the
+// app's principalId into the assignment name — so a delete-and-recreate (new MI)
+// produces a NEW assignment rather than an illegal update of the immutable
+// principalId on the existing one. The two shared-resource grants are deployed
+// into the platform RG (cross-RG); the Key Vault grant lands in this Node's RG.
+// Grants sit at RG scope (a module cannot scope to a single resource — BCP134),
+// which is effectively resource-scoped here: the roles are resource-TYPE scoped
+// and each RG is single-purpose. See the module header.
+
+// Key Vault Secrets User — the Node's own vault (this RG); resolves the refs.
+module keyVaultSecretsUser '../../modules/identity/roleAssignment.bicep' = {
+  name: 'pulse-kv-secrets-user'
+  params: {
     principalId: app.outputs.principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultSecretsUserRoleId)
-    principalType: 'ServicePrincipal'
+    roleDefinitionId: keyVaultSecretsUserRoleId
   }
 }
 
-// AcrPull — CROSS-RG: the ACR lives in rg-hd-platform-<env>, so the assignment is
-// placed there via the generic module deployed with a platform-RG scope.
+// AcrPull — the shared ACR (cross-RG, rg-hd-platform-<env>).
 module acrPull '../../modules/identity/roleAssignment.bicep' = {
   name: 'pulse-acrpull'
   scope: resourceGroup(platformResourceGroup)
   params: {
     principalId: app.outputs.principalId
     roleDefinitionId: acrPullRoleId
-    nameSeed: 'pulse-acrpull'
   }
 }
 
-// App Configuration Data Reader — CROSS-RG (App Configuration in rg-hd-platform).
+// App Configuration Data Reader — the shared store (cross-RG, rg-hd-platform).
 module appConfigReader '../../modules/identity/roleAssignment.bicep' = {
   name: 'pulse-appcs-reader'
   scope: resourceGroup(platformResourceGroup)
   params: {
     principalId: app.outputs.principalId
     roleDefinitionId: appConfigDataReaderRoleId
-    nameSeed: 'pulse-appcs-reader'
   }
 }
 
