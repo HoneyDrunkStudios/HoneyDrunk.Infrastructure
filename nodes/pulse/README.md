@@ -44,11 +44,11 @@ twice:
 ```text
 # Pass 1 — bootstrap: public placeholder image, no registry/secret wiring, but
 # the role assignments ARE created. First revision goes healthy with zero RBAC.
-env=dev  target=node  node=pulse  mode=apply  bootstrap=✔
+env=dev  target=node  node=pulse  mode=apply  bootstrap=true   (checkbox checked)
 
 # Pass 2 — real: private image + secrets + registry. RBAC now exists, so the
 # revision pulls the real image and resolves the secret refs.
-env=dev  target=node  node=pulse  mode=apply  bootstrap=✘
+env=dev  target=node  node=pulse  mode=apply  bootstrap=false  (checkbox unchecked)
 ```
 
 The `bootstrap` toggle overrides the leaf's `bootstrap` param via the deploy

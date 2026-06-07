@@ -143,8 +143,10 @@ jobs:
       resource-group: ${{ needs.resolve.outputs.resource-group }}
       what-if-only: ${{ inputs.mode == 'plan' }}
       # Bootstrap pass toggle (system-MI deadlock break) — overrides the leaf's
-      # `bootstrap` param to true. Empty string when unchecked (no override).
-      additional-parameters: ${{ inputs.bootstrap && 'bootstrap=true' || '' }}
+      # `bootstrap` param to true. Gated on target=node: only Node leaf templates
+      # declare `bootstrap`, so forwarding it to a platform deploy (which has no
+      # such param) would fail. Empty string otherwise (no override).
+      additional-parameters: ${{ (inputs.bootstrap && inputs.target == 'node') && 'bootstrap=true' || '' }}
       azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
       azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
       azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
