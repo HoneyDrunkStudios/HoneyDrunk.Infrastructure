@@ -34,6 +34,23 @@ param location string = resourceGroup().location
 @description('Required Grid tags: hd:node, hd:env, hd:owner, hd:cost-center, hd:dr-tier, hd:adr. Composed once by the param file and applied to every shared resource.')
 param tags object
 
+@description('Container registry SKU. dev uses Basic to match the existing acrhdshareddev; staging/prod use Standard.')
+@allowed([
+  'Basic'
+  'Standard'
+  'Premium'
+])
+param containerRegistrySku string = 'Standard'
+
+@description('App Configuration SKU. dev uses developer to match the existing appcs-hd-shared-dev; staging/prod use standard.')
+@allowed([
+  'free'
+  'developer'
+  'standard'
+  'premium'
+])
+param appConfigurationSku string = 'standard'
+
 // --- Log Analytics (first — the CAE + per-Node diagnostics reference its id) --
 module logAnalyticsWorkspace '../modules/observability/logAnalyticsWorkspace.bicep' = {
   name: 'platform-law'
@@ -62,6 +79,7 @@ module containerRegistry '../modules/data/containerRegistry.bicep' = {
     env: env
     location: location
     tags: tags
+    sku: containerRegistrySku
   }
 }
 
@@ -83,6 +101,7 @@ module appConfigurationStore '../modules/secrets/appConfigurationStore.bicep' = 
     env: env
     location: location
     tags: tags
+    sku: appConfigurationSku
   }
 }
 

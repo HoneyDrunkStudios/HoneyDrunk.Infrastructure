@@ -23,10 +23,12 @@ param location string = resourceGroup().location
 @description('Required Grid tags: hd:node, hd:env, hd:owner, hd:cost-center, hd:dr-tier, hd:adr. The consumer composes these once and passes them in.')
 param tags object
 
-@description('App Configuration sku. Standard is the Grid default.')
+@description('App Configuration sku (free / developer / standard / premium).')
 @allowed([
   'free'
+  'developer'
   'standard'
+  'premium'
 ])
 param sku string = 'standard'
 
