@@ -5,6 +5,11 @@ using './main.bicep'
 
 param env = 'dev'
 
+// dev matches the existing resources' tiers so the platform import is a no-op,
+// not an upgrade: acrhdshareddev = Basic, appcs-hd-shared-dev = developer.
+param containerRegistrySku = 'Basic'
+param appConfigurationSku = 'developer'
+
 // location omitted — inherits the target RG's region (resourceGroup().location),
 // i.e. East US 2 for rg-hd-platform-dev.
 

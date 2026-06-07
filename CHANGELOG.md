@@ -7,6 +7,7 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Changed
 
+- `platform/main.bicep`: parameterized the container-registry and App Configuration **SKUs** (`containerRegistrySku`, `appConfigurationSku`). The first dev what-if showed the existing `acrhdshareddev` (Basic) and `appcs-hd-shared-dev` (developer) would be *upgraded* to Standard by the module defaults; dev now sets `Basic` / `developer` to match, so the import is a tag-only no-op rather than a SKU change. `modules/secrets/appConfigurationStore.bicep` `sku` `@allowed` widened to `free` / `developer` / `standard` / `premium`.
 - `deploy.yml`: added a **`mode` input (`plan` / `apply`, default `plan`)**. `plan` runs a what-if dry run only (nothing applied); `apply` deploys. Passed through to the Actions `job-deploy-bicep.yml` as `what-if-only`, so a first run can be reviewed (confirm existing dev resources show as no-change) before touching anything. **Requires the Actions PR adding `what-if-only` to merge first.**
 - `modules/data/storageAccount.bicep`: set `allowSharedKeyAccess: false` — account-key/shared-key auth disabled, Entra (Managed Identity) + RBAC only, matching the no-local-auth posture (KV RBAC-only, App Config `disableLocalAuth`).
 
