@@ -5,7 +5,8 @@ using './main.bicep'
 
 param env = 'dev'
 
-param location = 'eastus'
+// location omitted — inherits the target RG's region (resourceGroup().location),
+// i.e. East US 2 for rg-hd-platform-dev.
 
 param tags = {
   'hd:node': 'honeydrunk-infrastructure'

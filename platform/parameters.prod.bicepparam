@@ -5,7 +5,7 @@ using './main.bicep'
 
 param env = 'prod'
 
-param location = 'eastus'
+// location omitted — inherits the target RG's region (resourceGroup().location).
 
 param tags = {
   'hd:node': 'honeydrunk-infrastructure'
