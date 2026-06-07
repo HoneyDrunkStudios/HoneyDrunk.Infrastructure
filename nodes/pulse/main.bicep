@@ -97,7 +97,8 @@ var secrets = [
 ]
 
 // --- Container environment ----------------------------------------------------
-// Non-secret env (safe in both passes). The bootstrap pass uses ONLY these.
+// The 4 Grid bootstrap env vars (invariant 18) — safe in BOTH passes. The
+// bootstrap pass uses ONLY these.
 var baseEnvVars = [
   {
     name: 'AZURE_KEYVAULT_URI'
@@ -115,13 +116,15 @@ var baseEnvVars = [
     name: 'HONEYDRUNK_NODE_ID'
     value: 'honeydrunk-pulse'
   }
+]
+// Real-pass-only env: the app's own port binding (the bootstrap placeholder
+// listens on :80, not :8080) and the secretRef vars — both only valid once the
+// real image + `secrets` are wired (bootstrap=false).
+var realEnvVars = [
   {
     name: 'ASPNETCORE_URLS'
     value: 'http://+:8080'
   }
-]
-// secretRef env — only valid once the `secrets` exist (i.e. the real pass).
-var secretEnvVars = [
   {
     name: 'PostHog__ApiKey'
     secretRef: 'posthog-apikey'
@@ -145,7 +148,7 @@ var registries = [
 // pass (bootstrap=false) wires the actual image, secrets, and registry.
 var effectiveImage = bootstrap ? bootstrapImage : image
 var effectiveTargetPort = bootstrap ? bootstrapTargetPort : realTargetPort
-var effectiveEnvVars = bootstrap ? baseEnvVars : concat(baseEnvVars, secretEnvVars)
+var effectiveEnvVars = bootstrap ? baseEnvVars : concat(baseEnvVars, realEnvVars)
 var effectiveSecrets = bootstrap ? [] : secrets
 var effectiveRegistries = bootstrap ? [] : registries
 
