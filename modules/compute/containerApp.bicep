@@ -120,6 +120,15 @@ resource containerApp 'Microsoft.App/containerApps@2025-07-01' = {
         targetPort: targetPort
         transport: transport
         allowInsecure: allowInsecure
+        // Explicit traffic split (invariant 36): always route 100% to the latest
+        // revision. Multiple revision mode keeps the rollback seam — pin an older
+        // revision by setting weights here when a rollback is needed.
+        traffic: [
+          {
+            latestRevision: true
+            weight: 100
+          }
+        ]
       }
     }
     template: {

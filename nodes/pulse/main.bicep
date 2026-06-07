@@ -41,6 +41,16 @@ param tags object
 @description('The pulse-collector container image (acrhdshared<env>.azurecr.io/honeydrunk-pulse-collector:<tag>). Owned by the param file until Pulse CD owns image promotion.')
 param image string
 
+@description('Bootstrap pass. A brand-new system-MI app cannot deploy in one shot: the first revision needs AcrPull (private image) + Key Vault Secrets User (secret refs), but those grants need the MI, which needs the app, which blocks on the revision — deadlock. Set true for the FIRST deploy of a new Node: it runs a PUBLIC placeholder image with no registry/secret wiring (revision goes healthy with zero RBAC) while STILL creating the role assignments. Then deploy again with bootstrap=false (default) — RBAC now exists, so the real private image pulls and the secret refs resolve. See README.')
+param bootstrap bool = false
+
+// Public placeholder for the bootstrap pass — listens on :80, needs no registry
+// auth or secrets, so the first revision of a fresh system-MI app is healthy with
+// zero RBAC (which is what lets the role-assignment grants then run).
+var bootstrapImage = 'mcr.microsoft.com/azuredocs/aci-helloworld:latest'
+var bootstrapTargetPort = 80
+var realTargetPort = 8080
+
 // --- Built-in role definition GUIDs -----------------------------------------
 var acrPullRoleId = '7f951dda-4ed3-4680-a7ca-43fe172d538d' // AcrPull
 var appConfigDataReaderRoleId = '516239f1-63e1-4d78-a4de-a74fb236a071' // App Configuration Data Reader
@@ -87,7 +97,8 @@ var secrets = [
 ]
 
 // --- Container environment ----------------------------------------------------
-var envVars = [
+// Non-secret env (safe in both passes). The bootstrap pass uses ONLY these.
+var baseEnvVars = [
   {
     name: 'AZURE_KEYVAULT_URI'
     value: keyVault.properties.vaultUri
@@ -108,6 +119,9 @@ var envVars = [
     name: 'ASPNETCORE_URLS'
     value: 'http://+:8080'
   }
+]
+// secretRef env — only valid once the `secrets` exist (i.e. the real pass).
+var secretEnvVars = [
   {
     name: 'PostHog__ApiKey'
     secretRef: 'posthog-apikey'
@@ -126,6 +140,15 @@ var registries = [
   }
 ]
 
+// --- Effective values: the bootstrap pass strips the private-image / secret /
+// registry wiring so the first revision is healthy without any RBAC; the real
+// pass (bootstrap=false) wires the actual image, secrets, and registry.
+var effectiveImage = bootstrap ? bootstrapImage : image
+var effectiveTargetPort = bootstrap ? bootstrapTargetPort : realTargetPort
+var effectiveEnvVars = bootstrap ? baseEnvVars : concat(baseEnvVars, secretEnvVars)
+var effectiveSecrets = bootstrap ? [] : secrets
+var effectiveRegistries = bootstrap ? [] : registries
+
 // --- The Pulse Container App --------------------------------------------------
 module app '../../modules/compute/containerApp.bicep' = {
   name: 'pulse-app'
@@ -136,8 +159,8 @@ module app '../../modules/compute/containerApp.bicep' = {
     location: location
     tags: tags
     containerAppEnvironmentId: containerAppEnvironment.id
-    image: image
-    targetPort: 8080
+    image: effectiveImage
+    targetPort: effectiveTargetPort
     externalIngress: true
     transport: 'auto'
     allowInsecure: false
@@ -145,9 +168,9 @@ module app '../../modules/compute/containerApp.bicep' = {
     maxReplicas: 10
     cpu: '0.25'
     memory: '0.5Gi'
-    envVars: envVars
-    secrets: secrets
-    registries: registries
+    envVars: effectiveEnvVars
+    secrets: effectiveSecrets
+    registries: effectiveRegistries
     scaleRules: [] // Pulse is request-driven on ingress; no KEDA trigger.
   }
 }

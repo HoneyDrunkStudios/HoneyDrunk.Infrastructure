@@ -24,21 +24,42 @@ Container Apps Environment (`cae-hd-<env>`) in `rg-hd-platform-<env>`.
 
 ## Deploy
 
-Manual `workflow_dispatch` via `.github/workflows/deploy.yml`:
+Manual `workflow_dispatch` via `.github/workflows/deploy.yml`.
+
+### Steady state (app already exists)
 
 ```text
-env=dev  target=node  node=pulse  mode=plan    # what-if dry run, review
-env=dev  target=node  node=pulse  mode=apply   # deploy
+env=dev  target=node  node=pulse  mode=plan     # what-if dry run, review
+env=dev  target=node  node=pulse  mode=apply    # deploy
 ```
+
+### Brand-new / from-scratch — TWO passes (system-MI bootstrap)
+
+A system-assigned-MI app that pulls a **private** image + resolves **Key Vault**
+secret refs **cannot deploy in one pass**: the first revision needs AcrPull + Key
+Vault Secrets User, those grants need the MI, the MI needs the app, and the app
+blocks on the revision — deadlock (`Operation expired`). So a fresh deploy runs
+twice:
+
+```text
+# Pass 1 — bootstrap: public placeholder image, no registry/secret wiring, but
+# the role assignments ARE created. First revision goes healthy with zero RBAC.
+env=dev  target=node  node=pulse  mode=apply  bootstrap=✔
+
+# Pass 2 — real: private image + secrets + registry. RBAC now exists, so the
+# revision pulls the real image and resolves the secret refs.
+env=dev  target=node  node=pulse  mode=apply  bootstrap=✘
+```
+
+The `bootstrap` toggle overrides the leaf's `bootstrap` param via the deploy
+workflow's `additional-parameters` passthrough. The role-assignment names fold in
+the MI principalId, so pass 2 (and every later deploy) is idempotent.
 
 ### Environment is immutable — migration is delete + recreate
 
-A Container App's `managedEnvironmentId` cannot change. Moving Pulse from an old
-environment to `cae-hd-<env>` requires **deleting the old `ca-hd-pulse-<env>`
-first**, then applying this template (brief dev downtime). On first apply the
-system MI is created, then its RBAC — the first revision may briefly fail to pull
-its image / resolve secrets until the role assignments propagate, then self-heals
-(or force it with `az containerapp revision restart`).
+A Container App's `managedEnvironmentId` cannot change. Moving Pulse to a
+different `cae-hd-<env>` requires **deleting the old `ca-hd-pulse-<env>` first**,
+then the two-pass from-scratch deploy above (brief dev downtime).
 
 ## Image ownership
 
