@@ -1,13 +1,13 @@
 # HoneyDrunk.Infrastructure
 
 Infrastructure-as-Code for the HoneyDrunk Grid. **All** Bicep content for every
-Azure resource the Grid provisions lives here, per [ADR-0077](https://github.com/HoneyDrunkStudios/HoneyDrunk.Architecture/blob/main/adrs/ADR-0077-infrastructure-as-code-bicep.md)
+Azure resource the Grid provisions lives here, per [ADR-0077](https://github.com/HoneyDrunkStudios/HoneyDrunk.Studio/blob/main/adrs/ADR-0077-infrastructure-as-code-bicep.md)
 (amended 2026-06-02 to consolidate Bicep content into this single repo and drop
 the cross-repo module registry).
 
 The **pipeline** does not live here. The reusable deploy and lint workflows stay
 in [`HoneyDrunk.Actions`](https://github.com/HoneyDrunkStudios/HoneyDrunk.Actions)
-per [ADR-0012](https://github.com/HoneyDrunkStudios/HoneyDrunk.Architecture/blob/main/adrs/ADR-0012-grid-cicd-control-plane.md)
+per [ADR-0012](https://github.com/HoneyDrunkStudios/HoneyDrunk.Studio/blob/main/adrs/ADR-0012-grid-cicd-control-plane.md)
 (Actions is the CI/CD control plane); this repo *consumes* them.
 
 ## Layout
@@ -41,7 +41,7 @@ versioned by git history and resolved from the filesystem at `bicep build` time.
 ## Linting
 
 A single root [`bicepconfig.json`](./bicepconfig.json) carries the
-[ADR-0077 D3](https://github.com/HoneyDrunkStudios/HoneyDrunk.Architecture/blob/main/adrs/ADR-0077-infrastructure-as-code-bicep.md)
+[ADR-0077 D3](https://github.com/HoneyDrunkStudios/HoneyDrunk.Studio/blob/main/adrs/ADR-0077-infrastructure-as-code-bicep.md)
 naming/tagging linter rules and governs all three subtrees via Bicep's
 config-file resolution. PRs are gated by the `bicep lint` reusable workflow
 (`HoneyDrunk.Actions/.github/workflows/job-bicep-lint.yml`), which fails on any
