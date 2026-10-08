@@ -28,6 +28,8 @@ jobs:
     permissions:
       contents: read
     uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-bicep-lint.yml@main
+    with:
+      bicep-version: v0.48.1
 
   secret-scan:
     name: Secret Scan
@@ -36,3 +38,26 @@ jobs:
     uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-secret-scan.yml@main
     with:
       scan-mode: diff-only
+
+  deployment-contract:
+    name: Deployment Contract Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install pinned Azure CLI for offline parameter interpretation
+        run: python -m pip install azure-cli==2.91.0
+      - name: Install pinned Bicep compiler
+        run: |
+          az bicep install --version v0.48.1
+          az version
+          "$HOME/.azure/bin/bicep" --version
+          echo "BICEP_BIN=$HOME/.azure/bin/bicep" >> "$GITHUB_ENV"
+      - name: Test dispatch, real CLI parameters, and compiled ownership offline
+        run: python -m unittest discover -s tests -v

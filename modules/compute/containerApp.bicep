@@ -29,6 +29,29 @@ type systemIdentityRegistry = {
   identity: 'system'
 }
 
+@sealed()
+@description('An explicit ingress traffic entry. Named revisions let a release controller create candidates without automatically promoting them.')
+type trafficWeight = {
+  revisionName: string?
+  latestRevision: bool?
+  label: string?
+  @minValue(0)
+  @maxValue(100)
+  weight: int
+}
+
+@description('Ingress traffic rules. The legacy latest-revision default is retained for existing module consumers; CD-managed apps must supply named revision rules explicitly.')
+@minLength(1)
+param traffic trafficWeight[] = [
+  {
+    latestRevision: true
+    weight: 100
+  }
+]
+
+@description('Optional deterministic revision suffix. Empty preserves Azure-generated revision names for existing consumers. Never reuse a suffix for a changed template.')
+param revisionSuffix string = ''
+
 @description('Service or Node short name; feeds the resource name.')
 @maxLength(13)
 param service string
@@ -120,18 +143,12 @@ resource containerApp 'Microsoft.App/containerApps@2025-07-01' = {
         targetPort: targetPort
         transport: transport
         allowInsecure: allowInsecure
-        // Explicit traffic split (invariant 36): always route 100% to the latest
-        // revision. Multiple revision mode keeps the rollback seam — pin an older
-        // revision by setting weights here when a rollback is needed.
-        traffic: [
-          {
-            latestRevision: true
-            weight: 100
-          }
-        ]
+        // Traffic ownership belongs to the caller, not to the newest revision.
+        traffic: traffic
       }
     }
     template: {
+      ...(empty(revisionSuffix) ? {} : { revisionSuffix: revisionSuffix })
       containers: [
         {
           name: containerName

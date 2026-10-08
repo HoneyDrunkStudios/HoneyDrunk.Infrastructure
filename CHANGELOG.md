@@ -5,6 +5,24 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+### Changed
+
+- Pulse's default IaC path now references its existing Container App and manages
+  RBAC without replaying CD-owned images or traffic. Removed the historical
+  image from the checked-in parameter file; explicit `appUpdate` inputs replace
+  image-only inputs for approved
+  initialization/maintenance. `bootstrap=true` remains available only for a new
+  app, with a deterministic named bootstrap revision and pinned traffic.
+- Added fail-closed `manage-app`, `app-image` and `traffic-revision` dispatch
+  validation, offline compiled-template regression tests, and migration/rollback
+  instructions. The earlier two-pass instructions below describe the original
+  implementation; current procedures are in `nodes/pulse/README.md`.
+- Pin the Infrastructure lint/deploy Bicep compiler to v0.48.1 and exercise
+  Azure CLI 2.91.0's real offline `.bicepparam` override processing in CI, including
+  exact object transport and rejected invalid maintenance inputs.
+- The shared Container App module accepts explicit traffic and revision suffixes
+  while retaining its legacy defaults for other consumers.
+
 ### Added
 
 - **System-MI bootstrap pass for `nodes/pulse`** (ADR-0077): a `bootstrap` param

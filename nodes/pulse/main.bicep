@@ -38,11 +38,35 @@ param location string = resourceGroup().location
 @description('Required Grid tags: hd:node, hd:env, hd:owner, hd:cost-center, hd:dr-tier, hd:adr. Composed by the param file.')
 param tags object
 
-@description('The pulse-collector container image (acrhdshared<env>.azurecr.io/honeydrunk-pulse-collector:<tag>). Owned by the param file until Pulse CD owns image promotion.')
-param image string
+@description('Legacy image input retained for parameter compatibility only. It does not enable app writes. Explicit maintenance requires appUpdate.image; ordinary deploys never replay this value.')
+param image string = ''
 
-@description('Bootstrap pass. A brand-new system-MI app cannot deploy in one shot: the first revision needs AcrPull (private image) + Key Vault Secrets User (secret refs), but those grants need the MI, which needs the app, which blocks on the revision — deadlock. Set true for the FIRST deploy of a new Node: it runs a PUBLIC placeholder image with no registry/secret wiring (revision goes healthy with zero RBAC) while STILL creating the role assignments. Then deploy again with bootstrap=false (default) — RBAC now exists, so the real private image pulls and the secret refs resolve. See README.')
+@sealed()
+@description('Explicit, reviewed Container App configuration update. The serving revision remains pinned while an unpromoted candidate is configured. Omit in steady state so IaC cannot overwrite CD-owned image or traffic.')
+type containerAppUpdate = {
+  @description('Approved image reference for this configuration update; never replay a checked-in historical release.')
+  @minLength(1)
+  image: string
+  @description('Full known-good revision name to retain at 100% traffic. Verify it before applying; never select the newest or merely active revision.')
+  @minLength(1)
+  trafficRevision: string
+}
+
+@description('Optional explicit initialization/maintenance update. Null (default) references the existing app and manages RBAC only. Do not combine with bootstrap. See README for the maintenance lock and verification procedure.')
+param appUpdate containerAppUpdate?
+
+@description('FIRST deploy of a brand-new app ONLY: create a named public placeholder revision and its system identity, then grant RBAC. False by default. Initialization is a separate appUpdate; never bootstrap an existing serving app.')
 param bootstrap bool = false
+
+var manageContainerApp = bootstrap || appUpdate != null
+var appName = 'ca-hd-pulse-${env}'
+var bootstrapRevisionSuffix = 'bootstrap'
+
+// In steady state this is the ONLY Container App operation: a read for outputs
+// and the existing identity. There is no app PUT and no traffic/image replay.
+resource existingApp 'Microsoft.App/containerApps@2025-07-01' existing = if (!manageContainerApp) {
+  name: appName
+}
 
 // Public placeholder for the bootstrap pass — listens on :80, needs no registry
 // auth or secrets, so the first revision of a fresh system-MI app is healthy with
@@ -147,15 +171,15 @@ var registries = [
 
 // --- Effective values: the bootstrap pass strips the private-image / secret /
 // registry wiring so the first revision is healthy without any RBAC; the real
-// pass (bootstrap=false) wires the actual image, secrets, and registry.
-var effectiveImage = bootstrap ? bootstrapImage : image
+// explicit appUpdate wires the approved image, secrets, and registry.
+var effectiveImage = bootstrap ? bootstrapImage : (appUpdate.?image ?? image)
 var effectiveTargetPort = bootstrap ? bootstrapTargetPort : realTargetPort
 var effectiveEnvVars = bootstrap ? baseEnvVars : concat(baseEnvVars, realEnvVars)
 var effectiveSecrets = bootstrap ? [] : secrets
 var effectiveRegistries = bootstrap ? [] : registries
 
 // --- The Pulse Container App --------------------------------------------------
-module app '../../modules/compute/containerApp.bicep' = {
+module app '../../modules/compute/containerApp.bicep' = if (manageContainerApp) {
   name: 'pulse-app'
   params: {
     service: 'pulse'
@@ -165,6 +189,14 @@ module app '../../modules/compute/containerApp.bicep' = {
     tags: tags
     containerAppEnvironmentId: containerAppEnvironment.id
     image: effectiveImage
+    revisionSuffix: bootstrap ? bootstrapRevisionSuffix : ''
+    traffic: [
+      {
+        revisionName: bootstrap ? '${appName}--${bootstrapRevisionSuffix}' : (appUpdate.?trafficRevision ?? '')
+        latestRevision: false
+        weight: 100
+      }
+    ]
     targetPort: effectiveTargetPort
     externalIngress: true
     transport: 'auto'
@@ -180,6 +212,8 @@ module app '../../modules/compute/containerApp.bicep' = {
   }
 }
 
+var appPrincipalId = manageContainerApp ? app!.outputs.principalId : existingApp!.identity.principalId
+
 // --- RBAC for the app's system-assigned identity ------------------------------
 // Each grant goes through the generic roleAssignment module, which folds the
 // app's principalId into the assignment name — so a delete-and-recreate (new MI)
@@ -194,7 +228,7 @@ module app '../../modules/compute/containerApp.bicep' = {
 module keyVaultSecretsUser '../../modules/identity/roleAssignment.bicep' = {
   name: 'pulse-kv-secrets-user'
   params: {
-    principalId: app.outputs.principalId
+    principalId: appPrincipalId
     roleDefinitionId: keyVaultSecretsUserRoleId
   }
 }
@@ -204,7 +238,7 @@ module acrPull '../../modules/identity/roleAssignment.bicep' = {
   name: 'pulse-acrpull'
   scope: resourceGroup(platformResourceGroup)
   params: {
-    principalId: app.outputs.principalId
+    principalId: appPrincipalId
     roleDefinitionId: acrPullRoleId
   }
 }
@@ -214,16 +248,16 @@ module appConfigReader '../../modules/identity/roleAssignment.bicep' = {
   name: 'pulse-appcs-reader'
   scope: resourceGroup(platformResourceGroup)
   params: {
-    principalId: app.outputs.principalId
+    principalId: appPrincipalId
     roleDefinitionId: appConfigDataReaderRoleId
   }
 }
 
 @description('Principal ID of the Pulse Container App system-assigned managed identity.')
-output principalId string = app.outputs.principalId
+output principalId string = appPrincipalId
 
 @description('Fully-qualified ingress domain of the Pulse Container App on the shared environment.')
-output fqdn string = app.outputs.fqdn
+output fqdn string = manageContainerApp ? app!.outputs.fqdn : existingApp!.properties.configuration.ingress.fqdn
 
 @description('The Pulse Container App resource name.')
-output name string = app.outputs.name
+output name string = appName

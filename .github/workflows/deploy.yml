@@ -56,10 +56,24 @@ on:
           - plan
           - apply
       bootstrap:
-        description: 'Bootstrap pass for a BRAND-NEW system-MI Node (target=node only). Runs a public placeholder image with no registry/secret wiring so the first revision is healthy before its AcrPull/Key Vault RBAC exists, while still creating the role assignments. Run once with this checked, then again unchecked (real image). Ignored for target=platform. See nodes/<node>/README.md.'
+        description: 'Bootstrap pass for a BRAND-NEW system-MI Node (target=node only). Runs a public placeholder image with no registry/secret wiring so the first revision is healthy before its AcrPull/Key Vault RBAC exists, while still creating the role assignments. Use only for a new app, then initialize explicitly with manage-app and reviewed inputs. Ignored for target=platform. See nodes/<node>/README.md.'
         required: false
         type: boolean
         default: false
+
+      manage-app:
+        description: 'Pulse initialization/maintenance ONLY. Requires app-image and traffic-revision; default leaves CD-owned app configuration untouched. Quiesce CD and review the maintenance procedure first.'
+        required: false
+        type: boolean
+        default: false
+      app-image:
+        description: 'Approved image for explicit Pulse initialization/maintenance. Required only with manage-app.'
+        required: false
+        type: string
+      traffic-revision:
+        description: 'Full verified known-good Pulse revision to KEEP at 100 percent during maintenance. Required only with manage-app. Never latest.'
+        required: false
+        type: string
 
 # Superset of the called workflow's needs (invariant 39):
 #   id-token: write  (OIDC federation)   contents: read  (checkout)
@@ -75,7 +89,12 @@ jobs:
       template-path: ${{ steps.compute.outputs.template-path }}
       parameters-path: ${{ steps.compute.outputs.parameters-path }}
       resource-group: ${{ steps.compute.outputs.resource-group }}
+      additional-parameters: ${{ steps.compute.outputs.additional-parameters }}
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Compute template / params / resource group
         id: compute
         shell: bash
@@ -83,38 +102,11 @@ jobs:
           ENV: ${{ inputs.env }}
           TARGET: ${{ inputs.target }}
           NODE: ${{ inputs.node }}
-        run: |
-          set -euo pipefail
-          case "$TARGET" in
-            platform)
-              TEMPLATE="platform/main.bicep"
-              PARAMS="platform/parameters.${ENV}.bicepparam"
-              RG="rg-hd-platform-${ENV}"
-              ;;
-            node)
-              if [ -z "${NODE:-}" ]; then
-                echo "::error::target=node requires the 'node' input (got empty)."
-                exit 1
-              fi
-              # Allowlist the node name BEFORE it is interpolated into template
-              # paths and resource-group names — rejects path traversal / injection.
-              if ! printf '%s' "$NODE" | grep -Eq '^[a-z][a-z0-9-]{0,28}$'; then
-                echo "::error::node '$NODE' is invalid — must match ^[a-z][a-z0-9-]{0,28}\$ (lowercase letter then lowercase alphanumerics/hyphens)."
-                exit 1
-              fi
-              TEMPLATE="nodes/${NODE}/main.bicep"
-              PARAMS="nodes/${NODE}/parameters.${ENV}.bicepparam"
-              RG="rg-hd-${NODE}-${ENV}"
-              ;;
-            *)
-              echo "::error::target must be 'platform' or 'node' (got '$TARGET')."
-              exit 1
-              ;;
-          esac
-          echo "template-path=$TEMPLATE"     >> "$GITHUB_OUTPUT"
-          echo "parameters-path=$PARAMS"     >> "$GITHUB_OUTPUT"
-          echo "resource-group=$RG"          >> "$GITHUB_OUTPUT"
-          echo "Resolved: template=$TEMPLATE params=$PARAMS rg=$RG"
+          BOOTSTRAP: ${{ inputs.bootstrap }}
+          MANAGE_APP: ${{ inputs.manage-app }}
+          APP_IMAGE: ${{ inputs.app-image }}
+          TRAFFIC_REVISION: ${{ inputs.traffic-revision }}
+        run: python3 scripts/resolve-deploy-target.py
 
   gate:
     name: Approval gate (${{ inputs.env }})
@@ -137,16 +129,14 @@ jobs:
     uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-bicep.yml@main
     with:
       env: ${{ inputs.env }}
+      bicep-version: v0.48.1
       template-path: ${{ needs.resolve.outputs.template-path }}
       parameters-path: ${{ needs.resolve.outputs.parameters-path }}
       deployment-scope: resourceGroup
       resource-group: ${{ needs.resolve.outputs.resource-group }}
       what-if-only: ${{ inputs.mode == 'plan' }}
-      # Bootstrap pass toggle (system-MI deadlock break) — overrides the leaf's
-      # `bootstrap` param to true. Gated on target=node: only Node leaf templates
-      # declare `bootstrap`, so forwarding it to a platform deploy (which has no
-      # such param) would fail. Empty string otherwise (no override).
-      additional-parameters: ${{ (inputs.bootstrap && inputs.target == 'node') && 'bootstrap=true' || '' }}
+      # Resolver rejects conflicting/missing inputs before authentication.
+      additional-parameters: ${{ needs.resolve.outputs.additional-parameters }}
       azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
       azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
       azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}

@@ -35,6 +35,8 @@ Environment by resource ID — it does **not** create the environment (that is
 | `containerAppEnvironmentId` | string | — | Resource ID of the shared `cae-hd-<env>`. Not created here. |
 | `image` | string | — | Container image reference. |
 | `containerName` | string | `service` | Single-container name; override only to match an existing name on import. |
+| `traffic` | trafficWeight[] | `[{ latestRevision: true, weight: 100 }]` | Explicit ingress rules. Legacy default retained for compatibility; CD-managed consumers must pass named revisions. |
+| `revisionSuffix` | string | `''` | Optional deterministic revision suffix. Empty omits the property; do not reuse for a changed template. |
 | `targetPort` | int | `8080` | Ingress target port. |
 | `externalIngress` | bool | `true` | External vs environment-internal ingress. |
 | `transport` | string | `'auto'` | `@allowed('auto','http','http2','tcp')`. |
@@ -77,3 +79,17 @@ module app '../../modules/compute/containerApp.bicep' = {
   }
 }
 ```
+
+### Traffic ownership
+
+The module is a full Container App write, not a patch. It applies the caller's
+image, configuration and traffic rules. Its historical latest-revision default
+is kept for unrelated consumers; it is unsafe for a CD process that creates
+zero-traffic candidates unless the caller explicitly overrides traffic. For a
+CD-managed app, use a named known-good revision (`latestRevision: false`,
+`revisionName: '<app>--<known-good>'`, `weight: 100`) during a reviewed update,
+and avoid calling this module in steady state when CD owns the app.
+
+[Pulse's lifecycle contract](../../nodes/pulse/README.md) demonstrates an
+existing-resource default, named bootstrap and explicit maintenance. A traffic
+parameter alone does not preserve concurrent CD updates or app-scoped settings.
