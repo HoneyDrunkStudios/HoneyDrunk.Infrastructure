@@ -129,6 +129,14 @@ class CompiledBicepTests(unittest.TestCase):
         self.assertEqual(writable_apps, [])
         self.assertEqual(self.pulse['parameters']['image']['defaultValue'], '')
 
+    def test_existing_app_read_is_disabled_during_bootstrap_or_maintenance(self):
+        # ARM languageVersion 2 existing declarations are reads. Guard the
+        # declaration itself, not only downstream property references.
+        self.assertEqual(self.pulse['resources']['existingApp']['condition'],
+                         "[not(variables('manageContainerApp'))]")
+        self.assertEqual(self.pulse['resources']['app']['condition'],
+                         "[variables('manageContainerApp')]")
+
     def test_bootstrap_and_maintenance_pin_named_traffic(self):
         params = self.pulse['resources']['app']['properties']['parameters']
         entry, = params['traffic']['value']

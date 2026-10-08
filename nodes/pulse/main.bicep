@@ -64,7 +64,7 @@ var bootstrapRevisionSuffix = 'bootstrap'
 
 // In steady state this is the ONLY Container App operation: a read for outputs
 // and the existing identity. There is no app PUT and no traffic/image replay.
-resource existingApp 'Microsoft.App/containerApps@2025-07-01' existing = {
+resource existingApp 'Microsoft.App/containerApps@2025-07-01' existing = if (!manageContainerApp) {
   name: appName
 }
 
@@ -212,7 +212,7 @@ module app '../../modules/compute/containerApp.bicep' = if (manageContainerApp) 
   }
 }
 
-var appPrincipalId = manageContainerApp ? app!.outputs.principalId : existingApp.identity.principalId
+var appPrincipalId = manageContainerApp ? app!.outputs.principalId : existingApp!.identity.principalId
 
 // --- RBAC for the app's system-assigned identity ------------------------------
 // Each grant goes through the generic roleAssignment module, which folds the
@@ -257,7 +257,7 @@ module appConfigReader '../../modules/identity/roleAssignment.bicep' = {
 output principalId string = appPrincipalId
 
 @description('Fully-qualified ingress domain of the Pulse Container App on the shared environment.')
-output fqdn string = manageContainerApp ? app!.outputs.fqdn : existingApp.properties.configuration.ingress.fqdn
+output fqdn string = manageContainerApp ? app!.outputs.fqdn : existingApp!.properties.configuration.ingress.fqdn
 
 @description('The Pulse Container App resource name.')
 output name string = appName
