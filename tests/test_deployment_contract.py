@@ -145,7 +145,14 @@ class CompiledBicepTests(unittest.TestCase):
         self.assertEqual(entry['revisionName'],
                          "[if(parameters('bootstrap'), format('{0}--{1}', variables('appName'), variables('bootstrapRevisionSuffix')), coalesce(tryGet(parameters('appUpdate'), 'trafficRevision'), ''))]")
         self.assertEqual(self.pulse['variables']['bootstrapRevisionSuffix'], 'bootstrap')
-        self.assertIn("variables('bootstrapRevisionSuffix')", params['revisionSuffix'])
+        # Bicep may lift a conditional around the whole {value: ...} object.
+        # v0.48.1 emits an ARM expression string here, not a dictionary. Also
+        # accept the ordinary wrapper if a supported compiler emits that shape.
+        revision_suffix = params['revisionSuffix']
+        if isinstance(revision_suffix, dict):
+            revision_suffix = revision_suffix['value']
+        self.assertIsInstance(revision_suffix, str)
+        self.assertIn("variables('bootstrapRevisionSuffix')", revision_suffix)
         self.assertEqual(self.pulse['variables']['effectiveImage'],
                          "[if(parameters('bootstrap'), variables('bootstrapImage'), coalesce(tryGet(parameters('appUpdate'), 'image'), parameters('image')))]")
 

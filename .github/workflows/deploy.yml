@@ -129,6 +129,7 @@ jobs:
     uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-deploy-bicep.yml@main
     with:
       env: ${{ inputs.env }}
+      bicep-version: v0.48.1
       template-path: ${{ needs.resolve.outputs.template-path }}
       parameters-path: ${{ needs.resolve.outputs.parameters-path }}
       deployment-scope: resourceGroup

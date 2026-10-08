@@ -17,6 +17,9 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
   validation, offline compiled-template regression tests, and migration/rollback
   instructions. The earlier two-pass instructions below describe the original
   implementation; current procedures are in `nodes/pulse/README.md`.
+- Pin the Infrastructure lint/deploy Bicep compiler to v0.48.1 and exercise
+  Azure CLI 2.91.0's real offline `.bicepparam` override processing in CI, including
+  exact object transport and rejected invalid maintenance inputs.
 - The shared Container App module accepts explicit traffic and revision suffixes
   while retaining its legacy defaults for other consumers.
 

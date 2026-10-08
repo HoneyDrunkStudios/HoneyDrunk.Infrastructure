@@ -144,10 +144,13 @@ plan; it is not part of this contract repair.
 
 ## Offline verification
 
-Install the official Bicep CLI, then run:
+Install the official Bicep CLI v0.48.1 (also pinned for lint and deployment),
+then install the test-only Azure CLI package in a virtual environment:
 
 ```sh
-BICEP_BIN=/path/to/bicep python3 -m unittest discover -s tests -v
+python3 -m venv .venv-tests
+.venv-tests/bin/python -m pip install azure-cli==2.91.0
+BICEP_BIN=/path/to/bicep .venv-tests/bin/python -m unittest discover -s tests -v
 bicep lint nodes/pulse/main.bicep
 bicep lint modules/compute/containerApp.bicep
 ```
@@ -155,5 +158,10 @@ bicep lint modules/compute/containerApp.bicep
 Tests exercise real dispatch resolution and compile the templates/parameter
 files to inspect default ownership, conditional app creation, typed maintenance
 inputs, explicit named traffic and backward-compatible module defaults. They
-make no Azure calls. Live what-if/apply, Container Apps behavior and smoke tests
-remain separately approved deployment verification.
+also run Azure CLI 2.91.0's actual deployment parameter parser with the resolver's
+inline override and the real parameter file, asserting that `appUpdate` reaches
+the compiled deployment parameters as the exact object. Tests prohibit network
+authentication and resource calls; they never invoke a deployment or what-if.
+This proves local toolchain interpretation, not service-side acceptance. Live
+what-if/apply, Container Apps behavior and smoke tests remain separately approved
+deployment verification.
