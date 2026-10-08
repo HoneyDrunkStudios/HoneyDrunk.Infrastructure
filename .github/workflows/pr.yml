@@ -36,3 +36,19 @@ jobs:
     uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-secret-scan.yml@main
     with:
       scan-mode: diff-only
+
+  deployment-contract:
+    name: Deployment Contract Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Install pinned Bicep compiler
+        run: |
+          az bicep install --version v0.48.1
+          echo "BICEP_BIN=$HOME/.azure/bin/bicep" >> "$GITHUB_ENV"
+      - name: Test dispatch validation and compiled ownership contract
+        run: python3 -m unittest discover -s tests -v

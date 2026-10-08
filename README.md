@@ -57,6 +57,18 @@ Infrastructure deploys on its **own cadence, decoupled from application release
 tags** — infra and application code rarely change together, and when they do,
 two separate deploys is acceptable.
 
+## Pulse application/CD ownership
+
+Normal Pulse Infrastructure deploys reference the existing Container App and
+reconcile RBAC only; application CD owns images, revisions and traffic. New-app
+bootstrap and configuration maintenance require explicit separate inputs. See
+[Pulse's lifecycle and migration procedure](nodes/pulse/README.md) before an
+Azure plan/apply. This source change does not migrate live routing.
+
+Offline contract tests compile the Bicep and exercise deploy input validation:
+`BICEP_BIN=/path/to/bicep python3 -m unittest discover -s tests -v`. The PR
+workflow runs these in addition to the existing lint and secret-scan gates.
+
 ## Secrets
 
 Bicep templates **never** contain secret values (ADR-0077 D7 / invariant 91).

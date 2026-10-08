@@ -6,10 +6,9 @@ using './main.bicep'
 
 param env = 'dev'
 
-// The current dev pulse-collector image. Owned here until Pulse CD owns image
-// promotion; matches the image live on ca-hd-pulse-dev at migration time so the
-// recreate on the new shared environment is byte-identical bar the environment.
-param image = 'acrhdshareddev.azurecr.io/honeydrunk-pulse-collector:dev-45377959a43f6698f8fa42ca3a58eb5d13a42c47'
+// No image or traffic snapshot belongs in this file. Pulse CD owns releases.
+// Default deploys reference the existing app; initialization/maintenance needs
+// an explicit reviewed appUpdate (see README).
 
 // location omitted — inherits the target RG's region (rg-hd-pulse-dev = East US 2).
 
