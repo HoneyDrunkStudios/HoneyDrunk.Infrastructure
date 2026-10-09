@@ -77,8 +77,12 @@ def validate_identity_settings(settings, bootstrap):
             raise ValueError('databaseSetup requires the approved administrator and firewall rules')
         if not isinstance(database['administratorLogin'], str) or not database['administratorLogin'].strip():
             raise ValueError('An approved administrator group name is required')
-        if not isinstance(database['administratorObjectId'], str) or not uuid.UUID(database['administratorObjectId']).int:
-            raise ValueError('An approved administrator object ID is required')
+        administrator_id = database['administratorObjectId']
+        if not isinstance(administrator_id, str):
+            raise ValueError('An approved canonical administrator object ID is required')
+        parsed_id = uuid.UUID(administrator_id)
+        if not parsed_id.int or administrator_id.lower() != str(parsed_id):
+            raise ValueError('An approved canonical administrator object ID is required')
         if not isinstance(database['firewallRules'], list):
             raise ValueError('firewallRules must be an explicit list')
         for rule in database['firewallRules']:

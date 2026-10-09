@@ -1,6 +1,6 @@
 # Identity development leaf
 
-Preparation only: no resource, credential, role, consent or deployment is authorized by this source change. Coordinate with the Identity application's [deployment review](https://github.com/HoneyDrunkStudios/HoneyDrunk.Identity/blob/feat/dev-deployment-readiness/docs/development-deployment.md) for the 2026-10-09 inventory, tenant evidence, cost/access approvals, SQL review/publish procedure and acceptance gates.
+Preparation only: no resource, credential, role, consent or deployment is authorized by this source change. Coordinate with the Identity application's [deployment review at af98994](https://github.com/HoneyDrunkStudios/HoneyDrunk.Identity/blob/af98994c2524f9d69cb9fe17757bf773c59249e5/docs/development-deployment.md) for the 2026-10-09 inventory, tenant evidence, cost/access approvals, SQL execution hold and acceptance gates.
 
 ## Ownership and stages
 
@@ -46,3 +46,5 @@ Approve current regional costs before creation; no dollar quote was verified. Ne
 Use the pinned Bicep 0.48.1 and Azure CLI 2.91.0 setup described in [Pulse offline verification](../pulse/README.md#offline-verification), then `python3 -m unittest discover -s tests -v`. The Identity tests compile real templates, verify no default writes/grants, explicit named traffic, probe limits, SQL auth/firewall defaults and bounded queues. Rejection cases exercise images, traffic revisions, certificate names, exact HTTPS origins, provisioning mixes, incomplete/extra fields, administrator IDs and firewall ranges. Real CLI tests round-trip a complete `appUpdate` and a group name containing spaces. No login or deployment is used by these tests. Existing shared Key Vault diagnostic-settings API linter warnings are unchanged.
 
 The [Grid advisory at 24da124](https://github.com/HoneyDrunkStudios/HoneyDrunk.Infrastructure/pull/13#issuecomment-6090803969) prompted the probe and validation fixes above. Existing-server SQL administrator resubmission still requires an authorized what-if and dev rerun; those live operations remain held. Incremental firewall cleanup is separate and must not be inferred from an omitted rule.
+
+The [follow-up at bc4184a](https://github.com/HoneyDrunkStudios/HoneyDrunk.Infrastructure/pull/13#issuecomment-6091206048) identified UUID representations accepted by Python but rejected by Bicep. Administrator IDs now require canonical 36-character hyphenated UUIDs (either hex case); compact, braced and URN forms are rejected before CLI transport. Direct template deployments bypass resolver checks; any future authorized direct invocation must separately validate incompatible setup/appUpdate combinations.

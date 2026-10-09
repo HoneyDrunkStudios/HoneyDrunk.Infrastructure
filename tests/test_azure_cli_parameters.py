@@ -135,12 +135,24 @@ class AzureCliParameterTests(unittest.TestCase):
 
     def test_identity_database_settings_preserve_spaces_through_real_cli(self):
         expected = {'administratorLogin': 'Identity SQL Admins',
-                    'administratorObjectId': '11111111-1111-1111-1111-111111111111',
+                    'administratorObjectId': 'A1234567-89AB-4CDE-8FAB-0123456789AB',
                     'firewallRules': []}
         result = resolver.resolve('dev', 'node', 'identity',
                                   identity_parameters=json.dumps({'databaseSetup': expected}))
         parameters = self.prepare(result['additional-parameters'], ROOT / 'nodes/identity/parameters.dev.bicepparam')
         self.assertEqual(parameters['databaseSetup']['value'], expected)
+        self.assertEqual(len(parameters['databaseSetup']['value']['administratorObjectId']), 36)
+
+    def test_noncanonical_identity_administrator_ids_never_reach_cli(self):
+        for identifier in ['1' * 32, '{11111111-1111-1111-1111-111111111111}',
+                           'urn:uuid:11111111-1111-1111-1111-111111111111']:
+            self.compiler_calls.clear()
+            with self.subTest(identifier=identifier), self.assertRaises(ValueError):
+                result = resolver.resolve('dev', 'node', 'identity', identity_parameters=json.dumps({
+                    'databaseSetup': {'administratorLogin': 'Identity SQL Admins',
+                                      'administratorObjectId': identifier, 'firewallRules': []}}))
+                self.prepare(result['additional-parameters'], ROOT / 'nodes/identity/parameters.dev.bicepparam')
+            self.assertEqual(self.compiler_calls, [])
 
     def test_resolver_shell_and_cli_preserve_exact_app_update_object(self):
         for revision in ('ca-hd-pulse-dev--known-good', 'ca-hd-pulse-dev--0000001'):

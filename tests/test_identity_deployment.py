@@ -41,7 +41,7 @@ class IdentityDispatchTests(unittest.TestCase):
                 resolver.resolve('dev', 'node', 'identity', identity_parameters=json.dumps({'appUpdate': update}))
 
     def test_rejects_app_update_combined_with_provisioning(self):
-        database = {'administratorLogin': 'Admins', 'administratorObjectId': '1' * 32, 'firewallRules': []}
+        database = {'administratorLogin': 'Admins', 'administratorObjectId': '11111111-1111-1111-1111-111111111111', 'firewallRules': []}
         for setup in [{'provisionVault': True}, {'provisionLifecycleQueues': True}, {'databaseSetup': database}]:
             with self.subTest(setup=setup), self.assertRaises(ValueError):
                 resolver.resolve('dev', 'node', 'identity',
@@ -51,8 +51,10 @@ class IdentityDispatchTests(unittest.TestCase):
                              identity_parameters=json.dumps({'appUpdate': APP_UPDATE}))
 
     def test_rejects_invalid_sql_administrators_and_reversed_firewall_range(self):
-        database = {'administratorLogin': 'Admins', 'administratorObjectId': '1' * 32, 'firewallRules': []}
-        for value in ['', 'not-a-guid', '00000000-0000-0000-0000-000000000000', 123]:
+        database = {'administratorLogin': 'Admins', 'administratorObjectId': '11111111-1111-1111-1111-111111111111', 'firewallRules': []}
+        for value in ['', 'not-a-guid', '00000000-0000-0000-0000-000000000000', 123,
+                      '1' * 32, '{11111111-1111-1111-1111-111111111111}',
+                      'urn:uuid:11111111-1111-1111-1111-111111111111']:
             with self.subTest(value=value), self.assertRaises(ValueError):
                 resolver.resolve('dev', 'node', 'identity', identity_parameters=json.dumps({
                     'databaseSetup': {**database, 'administratorObjectId': value}}))

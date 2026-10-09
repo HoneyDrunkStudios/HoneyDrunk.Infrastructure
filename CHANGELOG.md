@@ -7,6 +7,9 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Changed
 
+- Align Identity administrator UUID validation with Bicep's canonical 36-character
+  contract; reject compact, braced and URN forms before CLI transport.
+
 - Keep Identity startup probes within the Container Apps limits with a 150-second
   allowance; add compiled probe assertions, deployment-input rejection coverage,
   exact HTTPS-origin validation and a complete app update real-CLI round-trip.
