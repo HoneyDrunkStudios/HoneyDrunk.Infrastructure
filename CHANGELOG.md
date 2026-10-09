@@ -7,6 +7,12 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Changed
 
+- Keep Identity startup probes within the Container Apps limits with a 150-second
+  allowance; add compiled probe assertions, deployment-input rejection coverage,
+  exact HTTPS-origin validation and a complete app update real-CLI round-trip.
+- Document the initial placeholder-to-API ingress transition and keep existing SQL
+  administrator update verification explicitly pending an authorized dev rehearsal.
+
 - Pulse's default IaC path now references its existing Container App and manages
   RBAC without replaying CD-owned images or traffic. Removed the historical
   image from the checked-in parameter file; explicit `appUpdate` inputs replace

@@ -6,6 +6,7 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
+from identity_inputs import APP_UPDATE
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location('identity_resolver', ROOT / 'scripts/resolve-deploy-target.py')
@@ -14,6 +15,52 @@ spec.loader.exec_module(resolver)
 
 
 class IdentityDispatchTests(unittest.TestCase):
+    def test_rejects_invalid_app_configuration(self):
+        cases = {
+            'image': ['acrhdshareddev.azurecr.io/honeydrunk-identity-api:latest',
+                      'acrhdshareddev.azurecr.io/honeydrunk-identity-api@sha256:' + 'a' * 63,
+                      'other.azurecr.io/honeydrunk-identity-api@sha256:' + 'a' * 64],
+            'trafficRevision': ['latest', 'ca-hd-pulse-dev--good', 'ca-hd-identity-dev--bad--suffix',
+                                'ca-hd-identity-dev--bad-', 'ca-hd-identity-dev--UPPER'],
+            'graphCertificateSecretName': ['', 'secret/version', 'secret_value', 'a' * 128],
+            'allowedOrigins': ['https://example.com', [123], ['http://example.com'],
+                               ['https://example.com/path'], ['https://example.com/'],
+                               ['https://example.com?query'], ['https://example.com#fragment'],
+                               ['https://user:password@example.com'], ['https://*.example.com'],
+                               ['https://example.com:99999'], ['https://example.com:']],
+            'audience': ['', 123],
+        }
+        for field, values in cases.items():
+            for value in values:
+                with self.subTest(field=field, value=value), self.assertRaises(ValueError):
+                    resolver.resolve('dev', 'node', 'identity',
+                                     identity_parameters=json.dumps({'appUpdate': {**APP_UPDATE, field: value}}))
+        for update in [{key: value for key, value in APP_UPDATE.items() if key != 'issuer'},
+                       {**APP_UPDATE, 'unexpected': 'value'}]:
+            with self.subTest(update=update), self.assertRaises(ValueError):
+                resolver.resolve('dev', 'node', 'identity', identity_parameters=json.dumps({'appUpdate': update}))
+
+    def test_rejects_app_update_combined_with_provisioning(self):
+        database = {'administratorLogin': 'Admins', 'administratorObjectId': '1' * 32, 'firewallRules': []}
+        for setup in [{'provisionVault': True}, {'provisionLifecycleQueues': True}, {'databaseSetup': database}]:
+            with self.subTest(setup=setup), self.assertRaises(ValueError):
+                resolver.resolve('dev', 'node', 'identity',
+                                 identity_parameters=json.dumps({**setup, 'appUpdate': APP_UPDATE}))
+        with self.assertRaises(ValueError):
+            resolver.resolve('dev', 'node', 'identity', bootstrap=True,
+                             identity_parameters=json.dumps({'appUpdate': APP_UPDATE}))
+
+    def test_rejects_invalid_sql_administrators_and_reversed_firewall_range(self):
+        database = {'administratorLogin': 'Admins', 'administratorObjectId': '1' * 32, 'firewallRules': []}
+        for value in ['', 'not-a-guid', '00000000-0000-0000-0000-000000000000', 123]:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                resolver.resolve('dev', 'node', 'identity', identity_parameters=json.dumps({
+                    'databaseSetup': {**database, 'administratorObjectId': value}}))
+        with self.assertRaises(ValueError):
+            resolver.resolve('dev', 'node', 'identity', identity_parameters=json.dumps({'databaseSetup': {
+                **database, 'firewallRules': [{'name': 'reversed', 'startIpAddress': '192.0.2.20',
+                                             'endIpAddress': '192.0.2.10'}]}}))
+
     def test_reviewed_database_settings_survive_token_transport(self):
         settings = {'databaseSetup': {'administratorLogin': 'Identity SQL Admins',
                     'administratorObjectId': '11111111-1111-1111-1111-111111111111',
@@ -90,6 +137,25 @@ class IdentityDeploymentTests(unittest.TestCase):
         self.assertNotIn('administratorLoginPassword', server['properties'])
         self.assertEqual(template['parameters']['firewallRules']['defaultValue'], [])
         self.assertEqual(database['sku']['name'], 'Basic')
+
+    def test_compiled_probes_respect_container_apps_limits(self):
+        leaf = self.templates['identity']
+        self.assertIn("variables('runtimeProbes')", json.dumps(leaf['resources']['app']['properties']['parameters']['probes']))
+        probes = leaf['variables']['runtimeProbes']
+        self.assertEqual({probe['type'] for probe in probes}, {'Startup', 'Liveness', 'Readiness'})
+        for probe in probes:
+            for field, maximum in [('failureThreshold', 10), ('initialDelaySeconds', 60),
+                                   ('periodSeconds', 240), ('timeoutSeconds', 240), ('successThreshold', 10)]:
+                if field in probe:
+                    with self.subTest(probe=probe['type'], field=field):
+                        self.assertGreaterEqual(probe[field], 1)
+                        self.assertLessEqual(probe[field], maximum)
+            if probe['type'] in {'Startup', 'Liveness'}:
+                self.assertEqual(probe.get('successThreshold', 1), 1)
+            self.assertEqual(probe['httpGet']['port'], 8080)
+            self.assertEqual(probe['httpGet']['path'], '/health' if probe['type'] == 'Readiness' else '/health/live')
+        startup = next(probe for probe in probes if probe['type'] == 'Startup')
+        self.assertEqual(startup['periodSeconds'] * startup['failureThreshold'], 150)
 
     def test_queue_has_bounded_retry_and_dead_lettering(self):
         resources = self.templates['queue']['resources']

@@ -19,6 +19,7 @@ import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+from identity_inputs import APP_UPDATE
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -157,6 +158,16 @@ class AzureCliParameterTests(unittest.TestCase):
                 # supplying it ourselves and assuming CLI interpretation.
                 self.assertEqual(json.loads(self.compiler_calls[1][1]['BICEP_PARAMETERS_OVERRIDES']),
                                  {'appUpdate': expected})
+
+    def test_identity_complete_app_update_round_trips_through_real_cli(self):
+        result = resolver.resolve('dev', 'node', 'identity',
+                                  identity_parameters=json.dumps({'appUpdate': APP_UPDATE}))
+        parameters = self.prepare(result['additional-parameters'], ROOT / 'nodes/identity/parameters.dev.bicepparam')
+        self.assertEqual(parameters['appUpdate']['value'], APP_UPDATE)
+        self.assertEqual(len(self.compiler_calls), 2)
+        self.assertEqual(json.loads(self.compiler_calls[1][1]['BICEP_PARAMETERS_OVERRIDES']),
+                         {'appUpdate': APP_UPDATE})
+        self.assertNotIn('bootstrap', parameters)
 
     def test_default_and_bootstrap_remain_distinct(self):
         default = resolver.resolve('dev', 'node', 'pulse')

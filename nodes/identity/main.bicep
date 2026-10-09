@@ -158,13 +158,16 @@ module app '../../modules/compute/containerApp.bicep' = if (manageApp) {
     memory: '0.5Gi'
     envVars: bootstrap ? [] : runtimeEnv
     registries: bootstrap ? [] : [{ server: registry.properties.loginServer, identity: 'system' }]
-    probes: bootstrap ? [] : [
-      { type: 'Startup', httpGet: { path: '/health/live', port: 8080 }, periodSeconds: 5, failureThreshold: 30 }
-      { type: 'Liveness', httpGet: { path: '/health/live', port: 8080 }, periodSeconds: 10, failureThreshold: 3 }
-      { type: 'Readiness', httpGet: { path: '/health', port: 8080 }, periodSeconds: 10, timeoutSeconds: 5, failureThreshold: 3 }
-    ]
+    probes: bootstrap ? [] : runtimeProbes
   }
 }
+
+// Container Apps permits at most 10 failures; retain a 150-second startup allowance.
+var runtimeProbes = [
+  { type: 'Startup', httpGet: { path: '/health/live', port: 8080 }, periodSeconds: 15, failureThreshold: 10 }
+  { type: 'Liveness', httpGet: { path: '/health/live', port: 8080 }, periodSeconds: 10, failureThreshold: 3 }
+  { type: 'Readiness', httpGet: { path: '/health', port: 8080 }, periodSeconds: 10, timeoutSeconds: 5, failureThreshold: 3 }
+]
 
 // Source-only queue preparation; no topics are needed by the current per-consumer
 // queue contract. Consumer implementation, grants and lifecycle activation are separate.

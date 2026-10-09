@@ -6,6 +6,7 @@ import re
 import ipaddress
 import uuid
 from pathlib import Path
+from urllib.parse import urlsplit
 
 
 def resolve(env, target, node='', bootstrap=False, manage_app=False,
@@ -93,12 +94,21 @@ def validate_identity_settings(settings, bootstrap):
                     'allowedOrigins', 'otlpEndpoint'}
         if not isinstance(update, dict) or set(update) != required:
             raise ValueError('appUpdate requires the complete nonsecret Identity configuration')
-        if bootstrap or database is not None or settings.get('provisionVault'):
+        if bootstrap or database is not None or settings.get('provisionVault') or settings.get('provisionLifecycleQueues'):
             raise ValueError('Initialize dependencies first; do not combine appUpdate with resource setup')
         if any(not isinstance(value, str) or not value.strip() for key, value in update.items() if key != 'allowedOrigins'):
             raise ValueError('App configuration values must be nonempty strings')
         if not isinstance(update['allowedOrigins'], list) or not all(isinstance(origin, str) for origin in update['allowedOrigins']):
             raise ValueError('allowedOrigins must be a list of exact browser origins')
+        for origin in update['allowedOrigins']:
+            parsed = urlsplit(origin)
+            # Accessing port also rejects nonnumeric/out-of-range port values.
+            port = parsed.port
+            if (parsed.scheme != 'https' or not parsed.hostname or parsed.username or parsed.password
+                    or parsed.path or parsed.query or parsed.fragment or '*' in origin
+                    or any(character.isspace() for character in origin) or '\\' in origin
+                    or (port is None and parsed.netloc.endswith(':'))):
+                raise ValueError('allowedOrigins must contain exact HTTPS origins without paths or credentials')
         suffix = update['trafficRevision'].removeprefix('ca-hd-identity-dev--')
         if (not re.fullmatch(r'ca-hd-identity-dev--[a-z0-9][a-z0-9-]{0,63}', update['trafficRevision'])
                 or '--' in suffix or suffix.endswith('-')):
