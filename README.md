@@ -72,6 +72,11 @@ workflow runs these in addition to the existing lint and secret-scan gates.
 
 ## Secrets
 
+Identity's dev-only preparation and approval stages are documented in
+[nodes/identity](nodes/identity/README.md). Its default leaf does not overwrite
+CD-owned app state; SQL, vault, queues and app maintenance each require explicit
+reviewed inputs. Runtime grants and credential setup remain separate.
+
 Bicep templates **never** contain secret values (ADR-0077 D7 / invariant 91).
 Secrets are referenced by Key Vault URI / `keyVaultSecret`; `.bicepparam` files
 carry non-secret configuration only; the OIDC deploy identity provisions

@@ -75,6 +75,11 @@ on:
         required: false
         type: string
 
+      identity-parameters:
+        description: 'Identity dev only: reviewed nonsecret JSON object containing databaseSetup, provisionVault, provisionLifecycleQueues or appUpdate. Empty preserves steady-state ownership. See nodes/identity/README.md.'
+        required: false
+        type: string
+
 # Superset of the called workflow's needs (invariant 39):
 #   id-token: write  (OIDC federation)   contents: read  (checkout)
 permissions:
@@ -106,6 +111,7 @@ jobs:
           MANAGE_APP: ${{ inputs.manage-app }}
           APP_IMAGE: ${{ inputs.app-image }}
           TRAFFIC_REVISION: ${{ inputs.traffic-revision }}
+          IDENTITY_PARAMETERS: ${{ inputs.identity-parameters }}
         run: python3 scripts/resolve-deploy-target.py
 
   gate:

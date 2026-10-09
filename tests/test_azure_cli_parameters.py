@@ -127,9 +127,19 @@ class AzureCliParameterTests(unittest.TestCase):
         template, template_spec, parameters = self.resource._parse_bicepparam_file(
             self.command, template_file=None, parameters=parameter_lists)
         self.assertIsNone(template_spec)
-        self.assertEqual(json.loads(template)['parameters']['appUpdate']['$ref'], '#/definitions/containerAppUpdate')
+        expected_type = 'appConfiguration' if parameter_file.parent.name == 'identity' else 'containerAppUpdate'
+        self.assertEqual(json.loads(template)['parameters']['appUpdate']['$ref'], f'#/definitions/{expected_type}')
         self.assertNotIn('BICEP_PARAMETERS_OVERRIDES', self.compiler_calls[0][1])
         return json.loads(parameters)['parameters']
+
+    def test_identity_database_settings_preserve_spaces_through_real_cli(self):
+        expected = {'administratorLogin': 'Identity SQL Admins',
+                    'administratorObjectId': '11111111-1111-1111-1111-111111111111',
+                    'firewallRules': []}
+        result = resolver.resolve('dev', 'node', 'identity',
+                                  identity_parameters=json.dumps({'databaseSetup': expected}))
+        parameters = self.prepare(result['additional-parameters'], ROOT / 'nodes/identity/parameters.dev.bicepparam')
+        self.assertEqual(parameters['databaseSetup']['value'], expected)
 
     def test_resolver_shell_and_cli_preserve_exact_app_update_object(self):
         for revision in ('ca-hd-pulse-dev--known-good', 'ca-hd-pulse-dev--0000001'):

@@ -123,6 +123,9 @@ param registries systemIdentityRegistry[] = []
 @description('KEDA scale rules (e.g. an azureQueue depth trigger). Empty = replica-count bounds only.')
 param scaleRules array = []
 
+@description('Application-owned HTTP startup, liveness and readiness probes. Empty preserves existing consumer behavior.')
+param probes array = []
+
 var name = 'ca-hd-${service}-${env}'
 
 resource containerApp 'Microsoft.App/containerApps@2025-07-01' = {
@@ -158,6 +161,7 @@ resource containerApp 'Microsoft.App/containerApps@2025-07-01' = {
             memory: memory
           }
           env: envVars
+          ...(empty(probes) ? {} : { probes: probes })
         }
       ]
       scale: {

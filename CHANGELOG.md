@@ -25,6 +25,11 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Added
 
+- Prepare a dev-only Identity leaf, reusable Entra-only Azure SQL database and
+  Service Bus queue modules, and optional Container App probes. Shared resources
+  are referenced; default app ownership stays with CD. No role assignments or
+  credentials are created. Add validated nonsecret dispatcher overrides, compiled
+  boundary tests and a staged resource/access/cost approval runbook.
 - **System-MI bootstrap pass for `nodes/pulse`** (ADR-0077): a `bootstrap` param
   that breaks the system-assigned-MI Container App deadlock — a fresh app that
   pulls a private image + resolves Key Vault secret refs can't deploy in one ARM

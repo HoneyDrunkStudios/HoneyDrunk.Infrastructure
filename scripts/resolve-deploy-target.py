@@ -3,13 +3,17 @@
 import json
 import os
 import re
+import ipaddress
+import uuid
 from pathlib import Path
 
 
 def resolve(env, target, node='', bootstrap=False, manage_app=False,
-            app_image='', traffic_revision=''):
+            app_image='', traffic_revision='', identity_parameters=''):
     if env not in {'dev', 'staging', 'prod'}:
         raise ValueError('env must be dev, staging, or prod')
+    if identity_parameters and (env, target, node) != ('dev', 'node', 'identity'):
+        raise ValueError('identity-parameters is only valid for node=identity, env=dev')
     overrides = ''
     if target == 'platform':
         if manage_app or app_image or traffic_revision:
@@ -47,9 +51,62 @@ def resolve(env, target, node='', bootstrap=False, manage_app=False,
             overrides = 'bootstrap=true'
     else:
         raise ValueError('target must be platform or node')
+    if identity_parameters:
+        settings = json.loads(identity_parameters)
+        validate_identity_settings(settings, bootstrap)
+        tokens = [f'{key}={json.dumps(value, separators=(",", ":")).replace(" ", chr(92) + "u0020")}'
+                  for key, value in settings.items()]
+        overrides = ' '.join(filter(None, [overrides, *tokens]))
     return {'template-path': f'{directory}/main.bicep',
             'parameters-path': f'{directory}/parameters.{env}.bicepparam',
             'resource-group': group, 'additional-parameters': overrides}
+
+
+def validate_identity_settings(settings, bootstrap):
+    """Accept only the nonsecret Identity configuration contract before Azure login."""
+    allowed = {'databaseSetup', 'provisionVault', 'provisionLifecycleQueues', 'appUpdate'}
+    if not isinstance(settings, dict) or settings.keys() - allowed:
+        raise ValueError('identity-parameters contains unsupported fields')
+    for key in ['provisionVault', 'provisionLifecycleQueues']:
+        if key in settings and type(settings[key]) is not bool:
+            raise ValueError(f'{key} must be a boolean')
+    database = settings.get('databaseSetup')
+    if database is not None:
+        if not isinstance(database, dict) or set(database) != {'administratorLogin', 'administratorObjectId', 'firewallRules'}:
+            raise ValueError('databaseSetup requires the approved administrator and firewall rules')
+        if not isinstance(database['administratorLogin'], str) or not database['administratorLogin'].strip():
+            raise ValueError('An approved administrator group name is required')
+        if not isinstance(database['administratorObjectId'], str) or not uuid.UUID(database['administratorObjectId']).int:
+            raise ValueError('An approved administrator object ID is required')
+        if not isinstance(database['firewallRules'], list):
+            raise ValueError('firewallRules must be an explicit list')
+        for rule in database['firewallRules']:
+            if not isinstance(rule, dict) or set(rule) != {'name', 'startIpAddress', 'endIpAddress'}:
+                raise ValueError('Unexpected SQL firewall rule fields')
+            start, end = [ipaddress.IPv4Address(rule[key]) for key in ['startIpAddress', 'endIpAddress']]
+            if start.is_unspecified or start > end:
+                raise ValueError('SQL firewall must use ordered, explicit addresses; no Azure-services bypass')
+    update = settings.get('appUpdate')
+    if update is not None:
+        required = {'image', 'trafficRevision', 'authority', 'issuer', 'audience', 'mobileClientId',
+                    'apiScope', 'graphTenantId', 'graphClientId', 'graphCertificateSecretName',
+                    'allowedOrigins', 'otlpEndpoint'}
+        if not isinstance(update, dict) or set(update) != required:
+            raise ValueError('appUpdate requires the complete nonsecret Identity configuration')
+        if bootstrap or database is not None or settings.get('provisionVault'):
+            raise ValueError('Initialize dependencies first; do not combine appUpdate with resource setup')
+        if any(not isinstance(value, str) or not value.strip() for key, value in update.items() if key != 'allowedOrigins'):
+            raise ValueError('App configuration values must be nonempty strings')
+        if not isinstance(update['allowedOrigins'], list) or not all(isinstance(origin, str) for origin in update['allowedOrigins']):
+            raise ValueError('allowedOrigins must be a list of exact browser origins')
+        suffix = update['trafficRevision'].removeprefix('ca-hd-identity-dev--')
+        if (not re.fullmatch(r'ca-hd-identity-dev--[a-z0-9][a-z0-9-]{0,63}', update['trafficRevision'])
+                or '--' in suffix or suffix.endswith('-')):
+            raise ValueError('Identity maintenance requires its full known-good revision name')
+        if not re.fullmatch(r'acrhdshareddev\.azurecr\.io/honeydrunk-identity-api@sha256:[a-f0-9]{64}', update['image']):
+            raise ValueError('Identity maintenance requires a reviewed ACR image digest')
+        if not re.fullmatch(r'[A-Za-z0-9-]{1,127}', update['graphCertificateSecretName']):
+            raise ValueError('Provide a versionless secret name, never a certificate value or version')
 
 
 def main():
@@ -57,7 +114,8 @@ def main():
         result = resolve(os.environ['ENV'], os.environ['TARGET'], os.getenv('NODE', ''),
                          os.getenv('BOOTSTRAP', 'false') == 'true',
                          os.getenv('MANAGE_APP', 'false') == 'true',
-                         os.getenv('APP_IMAGE', ''), os.getenv('TRAFFIC_REVISION', ''))
+                         os.getenv('APP_IMAGE', ''), os.getenv('TRAFFIC_REVISION', ''),
+                         os.getenv('IDENTITY_PARAMETERS', ''))
         for key in ('template-path', 'parameters-path'):
             if not Path(result[key]).is_file():
                 raise ValueError(f'{key} does not exist: {result[key]}')
