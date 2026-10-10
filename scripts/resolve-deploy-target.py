@@ -10,13 +10,19 @@ from urllib.parse import urlsplit
 
 
 def resolve(env, target, node='', bootstrap=False, manage_app=False,
-            app_image='', traffic_revision='', identity_parameters=''):
+            app_image='', traffic_revision='', identity_parameters='', sql_parameters=''):
     if env not in {'dev', 'staging', 'prod'}:
         raise ValueError('env must be dev, staging, or prod')
     if identity_parameters and (env, target, node) != ('dev', 'node', 'identity'):
         raise ValueError('identity-parameters is only valid for node=identity, env=dev')
+    if sql_parameters and (env, target) != ('dev', 'platform-sql'):
+        raise ValueError('sql-parameters is only valid for target=platform-sql, env=dev')
     overrides = ''
-    if target == 'platform':
+    if target == 'platform-sql':
+        if env != 'dev' or node or bootstrap or manage_app or app_image or traffic_revision:
+            raise ValueError('platform-sql is dev-only and cannot accept node/app inputs')
+        directory, group = 'platform/sql', 'rg-hd-platform-dev'
+    elif target == 'platform':
         if manage_app or app_image or traffic_revision:
             raise ValueError('app maintenance inputs require target=node, node=pulse')
         # Preserve the existing caller behavior: bootstrap is ignored for platform.
@@ -51,10 +57,16 @@ def resolve(env, target, node='', bootstrap=False, manage_app=False,
         elif bootstrap:
             overrides = 'bootstrap=true'
     else:
-        raise ValueError('target must be platform or node')
+        raise ValueError('target must be platform, platform-sql or node')
     if identity_parameters:
         settings = json.loads(identity_parameters)
         validate_identity_settings(settings, bootstrap)
+    elif sql_parameters:
+        settings = json.loads(sql_parameters)
+        validate_sql_settings(settings)
+    else:
+        settings = {}
+    if settings:
         tokens = [f'{key}={json.dumps(value, separators=(",", ":")).replace(" ", chr(92) + "u0020")}'
                   for key, value in settings.items()]
         overrides = ' '.join(filter(None, [overrides, *tokens]))
@@ -63,18 +75,14 @@ def resolve(env, target, node='', bootstrap=False, manage_app=False,
             'resource-group': group, 'additional-parameters': overrides}
 
 
-def validate_identity_settings(settings, bootstrap):
-    """Accept only the nonsecret Identity configuration contract before Azure login."""
-    allowed = {'databaseSetup', 'provisionVault', 'provisionLifecycleQueues', 'appUpdate'}
-    if not isinstance(settings, dict) or settings.keys() - allowed:
-        raise ValueError('identity-parameters contains unsupported fields')
-    for key in ['provisionVault', 'provisionLifecycleQueues']:
-        if key in settings and type(settings[key]) is not bool:
-            raise ValueError(f'{key} must be a boolean')
-    database = settings.get('databaseSetup')
+def validate_sql_settings(settings):
+    """Server administration and firewall inputs belong only to platform/sql."""
+    if not isinstance(settings, dict) or settings.keys() - {'serverSetup'}:
+        raise ValueError('sql-parameters contains unsupported fields')
+    database = settings.get('serverSetup')
     if database is not None:
         if not isinstance(database, dict) or set(database) != {'administratorLogin', 'administratorObjectId', 'firewallRules'}:
-            raise ValueError('databaseSetup requires the approved administrator and firewall rules')
+            raise ValueError('serverSetup requires the approved administrator and firewall rules')
         if not isinstance(database['administratorLogin'], str) or not database['administratorLogin'].strip():
             raise ValueError('An approved administrator group name is required')
         administrator_id = database['administratorObjectId']
@@ -85,12 +93,30 @@ def validate_identity_settings(settings, bootstrap):
             raise ValueError('An approved canonical administrator object ID is required')
         if not isinstance(database['firewallRules'], list):
             raise ValueError('firewallRules must be an explicit list')
+        names = set()
         for rule in database['firewallRules']:
             if not isinstance(rule, dict) or set(rule) != {'name', 'startIpAddress', 'endIpAddress'}:
                 raise ValueError('Unexpected SQL firewall rule fields')
+            if (not isinstance(rule['name'], str)
+                    or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}', rule['name'])
+                    or rule['name'].casefold() in names):
+                raise ValueError('SQL firewall names must be unique simple names of 1-128 characters')
+            names.add(rule['name'].casefold())
+            if any(not isinstance(rule[key], str) for key in ['startIpAddress', 'endIpAddress']):
+                raise ValueError('SQL firewall addresses must be explicit IPv4 strings')
             start, end = [ipaddress.IPv4Address(rule[key]) for key in ['startIpAddress', 'endIpAddress']]
             if start.is_unspecified or start > end:
                 raise ValueError('SQL firewall must use ordered, explicit addresses; no Azure-services bypass')
+
+
+def validate_identity_settings(settings, bootstrap):
+    """Accept only node-owned nonsecret configuration before Azure login."""
+    allowed = {'provisionDatabase', 'provisionVault', 'provisionLifecycleQueues', 'appUpdate'}
+    if not isinstance(settings, dict) or settings.keys() - allowed:
+        raise ValueError('identity-parameters contains unsupported fields')
+    for key in ['provisionDatabase', 'provisionVault', 'provisionLifecycleQueues']:
+        if key in settings and type(settings[key]) is not bool:
+            raise ValueError(f'{key} must be a boolean')
     update = settings.get('appUpdate')
     if update is not None:
         required = {'image', 'trafficRevision', 'authority', 'issuer', 'audience', 'mobileClientId',
@@ -98,7 +124,7 @@ def validate_identity_settings(settings, bootstrap):
                     'allowedOrigins', 'otlpEndpoint'}
         if not isinstance(update, dict) or set(update) != required:
             raise ValueError('appUpdate requires the complete nonsecret Identity configuration')
-        if bootstrap or database is not None or settings.get('provisionVault') or settings.get('provisionLifecycleQueues'):
+        if bootstrap or any(settings.get(key) for key in ['provisionDatabase', 'provisionVault', 'provisionLifecycleQueues']):
             raise ValueError('Initialize dependencies first; do not combine appUpdate with resource setup')
         if any(not isinstance(value, str) or not value.strip() for key, value in update.items() if key != 'allowedOrigins'):
             raise ValueError('App configuration values must be nonempty strings')
@@ -129,7 +155,7 @@ def main():
                          os.getenv('BOOTSTRAP', 'false') == 'true',
                          os.getenv('MANAGE_APP', 'false') == 'true',
                          os.getenv('APP_IMAGE', ''), os.getenv('TRAFFIC_REVISION', ''),
-                         os.getenv('IDENTITY_PARAMETERS', ''))
+                         os.getenv('IDENTITY_PARAMETERS', ''), os.getenv('SQL_PARAMETERS', ''))
         for key in ('template-path', 'parameters-path'):
             if not Path(result[key]).is_file():
                 raise ValueError(f'{key} does not exist: {result[key]}')

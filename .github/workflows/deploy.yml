@@ -37,11 +37,12 @@ on:
           - staging
           - prod
       target:
-        description: 'What to deploy: the shared platform layer, or a single Node.'
+        description: 'What to deploy: platform, isolated shared SQL server, or a single Node.'
         required: true
         type: choice
         options:
           - platform
+          - platform-sql
           - node
       node:
         description: 'Node short name (required when target=node, e.g. notify). Ignored for target=platform.'
@@ -76,7 +77,12 @@ on:
         type: string
 
       identity-parameters:
-        description: 'Identity dev only: reviewed nonsecret JSON object containing databaseSetup, provisionVault, provisionLifecycleQueues or appUpdate. Empty preserves steady-state ownership. See nodes/identity/README.md.'
+        description: 'Identity dev only: reviewed nonsecret JSON containing provisionDatabase, provisionVault, provisionLifecycleQueues or appUpdate. No server/admin/firewall fields. See nodes/identity/README.md.'
+        required: false
+        type: string
+
+      sql-parameters:
+        description: 'platform-sql dev only: reviewed nonsecret JSON containing serverSetup with the approved Entra administrator group and explicit firewall list. Empty performs no writes. See platform/sql/README.md.'
         required: false
         type: string
 
@@ -112,6 +118,7 @@ jobs:
           APP_IMAGE: ${{ inputs.app-image }}
           TRAFFIC_REVISION: ${{ inputs.traffic-revision }}
           IDENTITY_PARAMETERS: ${{ inputs.identity-parameters }}
+          SQL_PARAMETERS: ${{ inputs.sql-parameters }}
         run: python3 scripts/resolve-deploy-target.py
 
   gate:

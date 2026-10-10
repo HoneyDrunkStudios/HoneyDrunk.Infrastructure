@@ -1,4 +1,8 @@
-@description('Short service name used for the dedicated logical server and database.')
+@description('Existing logical server in this module deployment resource group. This module cannot change server/admin/network configuration.')
+@minLength(1)
+param serverName string
+
+@description('Short service name used only for the separately owned database.')
 @maxLength(13)
 param service string
 
@@ -12,52 +16,9 @@ param location string = resourceGroup().location
 @description('Grid ownership and cost tags.')
 param tags object
 
-@description('Approved workforce-tenant Entra administrator group display name. No SQL password is created.')
-@minLength(1)
-param administratorLogin string
-
-@description('Approved workforce-tenant Entra administrator group object ID.')
-@minLength(36)
-@maxLength(36)
-param administratorObjectId string
-
-@sealed()
-type firewallRule = {
-  name: string
-  startIpAddress: string
-  endIpAddress: string
+resource server 'Microsoft.Sql/servers@2025-01-01' existing = {
+  name: serverName
 }
-
-@description('Explicit reviewed egress ranges. Empty denies all public clients. Never use the 0.0.0.0 Azure-services bypass.')
-param firewallRules firewallRule[] = []
-
-resource server 'Microsoft.Sql/servers@2025-01-01' = {
-  name: 'sql-hd-${service}-${env}'
-  location: location
-  tags: tags
-  properties: {
-    version: '12.0'
-    minimalTlsVersion: '1.2'
-    publicNetworkAccess: 'Enabled'
-    administrators: {
-      administratorType: 'ActiveDirectory'
-      principalType: 'Group'
-      login: administratorLogin
-      sid: administratorObjectId
-      tenantId: subscription().tenantId
-      azureADOnlyAuthentication: true
-    }
-  }
-}
-
-resource firewall 'Microsoft.Sql/servers/firewallRules@2025-01-01' = [for rule in firewallRules: {
-  parent: server
-  name: rule.name
-  properties: {
-    startIpAddress: rule.startIpAddress
-    endIpAddress: rule.endIpAddress
-  }
-}]
 
 // Predictable low-volume dev cost: 5 DTUs, 2 GiB. No serverless auto-pause or
 // free-offer assumption. A different performance tier is a reviewed module change.

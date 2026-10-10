@@ -128,30 +128,40 @@ class AzureCliParameterTests(unittest.TestCase):
         template, template_spec, parameters = self.resource._parse_bicepparam_file(
             self.command, template_file=None, parameters=parameter_lists)
         self.assertIsNone(template_spec)
-        expected_type = 'appConfiguration' if parameter_file.parent.name == 'identity' else 'containerAppUpdate'
-        self.assertEqual(json.loads(template)['parameters']['appUpdate']['$ref'], f'#/definitions/{expected_type}')
+        if parameter_file.parent.name == 'sql':
+            self.assertEqual(json.loads(template)['parameters']['serverSetup']['$ref'], '#/definitions/sqlSetup')
+        else:
+            expected_type = 'appConfiguration' if parameter_file.parent.name == 'identity' else 'containerAppUpdate'
+            self.assertEqual(json.loads(template)['parameters']['appUpdate']['$ref'], f'#/definitions/{expected_type}')
         self.assertNotIn('BICEP_PARAMETERS_OVERRIDES', self.compiler_calls[0][1])
         return json.loads(parameters)['parameters']
 
-    def test_identity_database_settings_preserve_spaces_through_real_cli(self):
-        expected = {'administratorLogin': 'Identity SQL Admins',
+    def test_shared_sql_settings_preserve_spaces_through_real_cli(self):
+        expected = {'administratorLogin': 'Shared SQL Admins',
                     'administratorObjectId': 'A1234567-89AB-4CDE-8FAB-0123456789AB',
-                    'firewallRules': []}
+                    'firewallRules': [{'name': 'operator', 'startIpAddress': '192.0.2.10', 'endIpAddress': '192.0.2.10'}]}
+        result = resolver.resolve('dev', 'platform-sql', sql_parameters=json.dumps({'serverSetup': expected}))
+        parameters = self.prepare(result['additional-parameters'], ROOT / 'platform/sql/parameters.dev.bicepparam')
+        self.assertEqual(parameters['serverSetup']['value'], expected)
+        self.assertEqual(len(parameters['serverSetup']['value']['administratorObjectId']), 36)
+
+    def test_identity_provisions_only_database_on_existing_shared_server(self):
         result = resolver.resolve('dev', 'node', 'identity',
-                                  identity_parameters=json.dumps({'databaseSetup': expected}))
+                                  identity_parameters=json.dumps({'provisionDatabase': True}))
         parameters = self.prepare(result['additional-parameters'], ROOT / 'nodes/identity/parameters.dev.bicepparam')
-        self.assertEqual(parameters['databaseSetup']['value'], expected)
-        self.assertEqual(len(parameters['databaseSetup']['value']['administratorObjectId']), 36)
+        self.assertIs(parameters['provisionDatabase']['value'], True)
+        self.assertNotIn('serverSetup', parameters)
+        self.assertNotIn('databaseSetup', parameters)
 
     def test_noncanonical_identity_administrator_ids_never_reach_cli(self):
         for identifier in ['1' * 32, '{11111111-1111-1111-1111-111111111111}',
                            'urn:uuid:11111111-1111-1111-1111-111111111111']:
             self.compiler_calls.clear()
             with self.subTest(identifier=identifier), self.assertRaises(ValueError):
-                result = resolver.resolve('dev', 'node', 'identity', identity_parameters=json.dumps({
-                    'databaseSetup': {'administratorLogin': 'Identity SQL Admins',
+                result = resolver.resolve('dev', 'platform-sql', sql_parameters=json.dumps({
+                    'serverSetup': {'administratorLogin': 'Shared SQL Admins',
                                       'administratorObjectId': identifier, 'firewallRules': []}}))
-                self.prepare(result['additional-parameters'], ROOT / 'nodes/identity/parameters.dev.bicepparam')
+                self.prepare(result['additional-parameters'], ROOT / 'platform/sql/parameters.dev.bicepparam')
             self.assertEqual(self.compiler_calls, [])
 
     def test_resolver_shell_and_cli_preserve_exact_app_update_object(self):

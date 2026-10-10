@@ -41,8 +41,7 @@ class IdentityDispatchTests(unittest.TestCase):
                 resolver.resolve('dev', 'node', 'identity', identity_parameters=json.dumps({'appUpdate': update}))
 
     def test_rejects_app_update_combined_with_provisioning(self):
-        database = {'administratorLogin': 'Admins', 'administratorObjectId': '11111111-1111-1111-1111-111111111111', 'firewallRules': []}
-        for setup in [{'provisionVault': True}, {'provisionLifecycleQueues': True}, {'databaseSetup': database}]:
+        for setup in [{'provisionVault': True}, {'provisionLifecycleQueues': True}, {'provisionDatabase': True}]:
             with self.subTest(setup=setup), self.assertRaises(ValueError):
                 resolver.resolve('dev', 'node', 'identity',
                                  identity_parameters=json.dumps({**setup, 'appUpdate': APP_UPDATE}))
@@ -56,33 +55,61 @@ class IdentityDispatchTests(unittest.TestCase):
                       '1' * 32, '{11111111-1111-1111-1111-111111111111}',
                       'urn:uuid:11111111-1111-1111-1111-111111111111']:
             with self.subTest(value=value), self.assertRaises(ValueError):
-                resolver.resolve('dev', 'node', 'identity', identity_parameters=json.dumps({
-                    'databaseSetup': {**database, 'administratorObjectId': value}}))
+                resolver.resolve('dev', 'platform-sql', sql_parameters=json.dumps({
+                    'serverSetup': {**database, 'administratorObjectId': value}}))
         with self.assertRaises(ValueError):
-            resolver.resolve('dev', 'node', 'identity', identity_parameters=json.dumps({'databaseSetup': {
+            resolver.resolve('dev', 'platform-sql', sql_parameters=json.dumps({'serverSetup': {
                 **database, 'firewallRules': [{'name': 'reversed', 'startIpAddress': '192.0.2.20',
                                              'endIpAddress': '192.0.2.10'}]}}))
 
     def test_reviewed_database_settings_survive_token_transport(self):
-        settings = {'databaseSetup': {'administratorLogin': 'Identity SQL Admins',
+        settings = {'serverSetup': {'administratorLogin': 'Shared SQL Admins',
                     'administratorObjectId': '11111111-1111-1111-1111-111111111111',
-                    'firewallRules': []}, 'provisionVault': True}
-        result = resolver.resolve('dev', 'node', 'identity', bootstrap=True,
-                                  identity_parameters=json.dumps(settings))
+                    'firewallRules': []}}
+        result = resolver.resolve('dev', 'platform-sql', sql_parameters=json.dumps(settings))
         tokens = result['additional-parameters'].split()
-        self.assertEqual(tokens[0], 'bootstrap=true')
-        restored = {key: json.loads(value) for key, value in (item.split('=', 1) for item in tokens[1:])}
+        self.assertEqual(result['template-path'], 'platform/sql/main.bicep')
+        self.assertEqual(result['resource-group'], 'rg-hd-platform-dev')
+        restored = {key: json.loads(value) for key, value in (item.split('=', 1) for item in tokens)}
         self.assertEqual(restored, settings)
 
-    def test_rejects_cross_node_inputs_secret_values_and_firewall_bypass(self):
+    def test_rejects_cross_node_inputs_secret_values_and_server_ownership(self):
         with self.assertRaises(ValueError):
             resolver.resolve('dev', 'node', 'pulse', identity_parameters='{}')
         for settings in [{'certificateBase64': 'must-not-be-an-input'}, {'provisionVault': 'true'},
-                         {'databaseSetup': {'administratorLogin': 'admins',
-                          'administratorObjectId': '11111111-1111-1111-1111-111111111111',
-                          'firewallRules': [{'name': 'bypass', 'startIpAddress': '0.0.0.0', 'endIpAddress': '0.0.0.0'}]}}]:
+                         {'databaseSetup': {}}, {'serverSetup': {}}, {'provisionDatabase': 'true'}]:
             with self.subTest(settings=settings), self.assertRaises(ValueError):
                 resolver.resolve('dev', 'node', 'identity', identity_parameters=json.dumps(settings))
+
+    def test_sql_target_rejects_wrong_scopes_and_app_inputs(self):
+        for args in [dict(env='prod', target='platform-sql'),
+                     dict(env='dev', target='platform-sql', node='identity'),
+                     dict(env='dev', target='platform-sql', bootstrap=True),
+                     dict(env='dev', target='platform-sql', manage_app=True),
+                     dict(env='dev', target='platform-sql', app_image='image'),
+                     dict(env='dev', target='platform-sql', traffic_revision='revision'),
+                     dict(env='dev', target='platform', sql_parameters='{}'),
+                     dict(env='dev', target='node', node='identity', sql_parameters='{}')]:
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                resolver.resolve(**args)
+        for settings in [[], {'provisionDatabase': True}, {'appUpdate': APP_UPDATE},
+                         {'serverSetup': {'administratorLogin': 'incomplete'}},
+                         {'serverSetup': {'password': 'never'}}]:
+            with self.subTest(settings=settings), self.assertRaises(ValueError):
+                resolver.resolve('dev', 'platform-sql', sql_parameters=json.dumps(settings))
+
+    def test_sql_firewall_rejects_bypass_nonstrings_bad_names_and_duplicates(self):
+        rule = {'name': 'operator', 'startIpAddress': '192.0.2.10', 'endIpAddress': '192.0.2.10'}
+        invalid = [[{**rule, 'startIpAddress': '0.0.0.0'}],
+                   [{**rule, 'startIpAddress': 1}], [{**rule, 'endIpAddress': 2}],
+                   [{**rule, 'startIpAddress': '::1'}], [{**rule, 'name': ''}],
+                   [{**rule, 'name': 'bad name'}], [{**rule, 'name': 123}],
+                   [{**rule, 'name': 'a' * 129}], [rule, {**rule, 'name': 'OPERATOR'}]]
+        for rules in invalid:
+            with self.subTest(rules=rules), self.assertRaises(ValueError):
+                resolver.resolve('dev', 'platform-sql', sql_parameters=json.dumps({'serverSetup': {
+                    'administratorLogin': 'Shared SQL Admins',
+                    'administratorObjectId': '11111111-1111-1111-1111-111111111111', 'firewallRules': rules}}))
 
 
 class IdentityDeploymentTests(unittest.TestCase):
@@ -93,6 +120,8 @@ class IdentityDeploymentTests(unittest.TestCase):
         for key, path in {
             'identity': 'nodes/identity/main.bicep',
             'sql': 'modules/data/sqlDatabase.bicep',
+            'sqlServer': 'modules/data/sqlServer.bicep',
+            'sharedSql': 'platform/sql/main.bicep',
             'queue': 'modules/messaging/serviceBusQueue.bicep',
             'app': 'modules/compute/containerApp.bicep',
         }.items():
@@ -100,6 +129,13 @@ class IdentityDeploymentTests(unittest.TestCase):
             subprocess.run([os.environ['BICEP_BIN'], 'build', str(ROOT / path),
                             '--outfile', str(output)], check=True, capture_output=True)
             cls.templates[key] = json.loads(output.read_text(encoding='utf-8-sig'))
+        cls.parameters = {}
+        for key, path in {'identity': 'nodes/identity', 'sharedSql': 'platform/sql'}.items():
+            output = Path(cls.temp.name) / f'{key}.parameters.json'
+            subprocess.run([os.environ['BICEP_BIN'], 'build-params',
+                            str(ROOT / path / 'parameters.dev.bicepparam'), '--outfile', str(output)],
+                           check=True, capture_output=True)
+            cls.parameters[key] = json.loads(output.read_text(encoding='utf-8-sig'))['parameters']
 
     @classmethod
     def tearDownClass(cls):
@@ -107,13 +143,13 @@ class IdentityDeploymentTests(unittest.TestCase):
 
     def test_steady_state_cannot_write_app_or_provision_dependencies(self):
         leaf = self.templates['identity']
-        for key in ['bootstrap', 'provisionVault', 'provisionLifecycleQueues']:
+        for key in ['bootstrap', 'provisionDatabase', 'provisionVault', 'provisionLifecycleQueues']:
             self.assertIs(leaf['parameters'][key]['defaultValue'], False)
-        for key in ['appUpdate', 'databaseSetup']:
+        for key in ['appUpdate']:
             self.assertIs(leaf['parameters'][key]['nullable'], True)
         self.assertIs(leaf['resources']['existingApp']['existing'], True)
         self.assertEqual(leaf['resources']['app']['condition'], '[variables(\'manageApp\')]')
-        self.assertIn("parameters('databaseSetup')", leaf['resources']['database']['condition'])
+        self.assertEqual(leaf['resources']['database']['condition'], "[parameters('provisionDatabase')]")
         self.assertNotIn('Microsoft.Authorization/roleAssignments', json.dumps(leaf))
 
     def test_app_uses_named_traffic_and_distinct_health_probes(self):
@@ -128,17 +164,60 @@ class IdentityDeploymentTests(unittest.TestCase):
         self.assertNotIn('ca-hd-pulse', source)
 
     def test_sql_uses_entra_only_and_restrictive_defaults(self):
-        template = self.templates['sql']
+        template = self.templates['sqlServer']
         resources = template['resources']
         if isinstance(resources, list):
             resources = {r['type'].split('/')[-1]: r for r in resources}
-            server, database = resources['servers'], resources['databases']
+            server = resources['servers']
         else:
-            server, database = resources['server'], resources['database']
+            server = resources['server']
         self.assertTrue(server['properties']['administrators']['azureADOnlyAuthentication'])
         self.assertNotIn('administratorLoginPassword', server['properties'])
         self.assertEqual(template['parameters']['firewallRules']['defaultValue'], [])
-        self.assertEqual(database['sku']['name'], 'Basic')
+
+    def test_database_cannot_write_shared_server_admin_or_network(self):
+        template = self.templates['sql']
+        resources = template['resources']
+        resources = list(resources.values()) if isinstance(resources, dict) else resources
+        writes = [resource for resource in resources if not resource.get('existing')]
+        self.assertEqual({r['type'] for r in writes}, {
+            'Microsoft.Sql/servers/databases',
+            'Microsoft.Sql/servers/databases/backupShortTermRetentionPolicies'})
+        database = next(r for r in writes if r['type'].endswith('/databases'))
+        retention = next(r for r in writes if r['type'].endswith('/backupShortTermRetentionPolicies'))
+        self.assertEqual(database['sku'], {'name': 'Basic', 'tier': 'Basic', 'capacity': 5})
+        self.assertEqual(database['properties']['maxSizeBytes'], 2147483648)
+        self.assertEqual(database['properties']['requestedBackupStorageRedundancy'], 'Local')
+        self.assertEqual(retention['properties']['retentionDays'], 7)
+        for forbidden in ['administrator', 'firewall', 'roleAssignments', 'pocketquests']:
+            self.assertNotIn(forbidden, json.dumps(template))
+
+    def test_shared_server_leaf_has_no_app_database_or_platform_redeployment(self):
+        leaf = self.templates['sharedSql']
+        self.assertIs(leaf['parameters']['serverSetup']['nullable'], True)
+        self.assertEqual(set(leaf['resources']), {'server'})
+        self.assertIn("parameters('serverSetup')", leaf['resources']['server']['condition'])
+        for forbidden in ['Microsoft.App/', 'Microsoft.Authorization/', 'Microsoft.Sql/servers/databases']:
+            self.assertNotIn(forbidden, json.dumps(leaf))
+        self.assertEqual(resolver.resolve('dev', 'platform-sql')['additional-parameters'], '')
+
+    def test_database_scope_endpoint_and_tags_preserve_separate_ownership(self):
+        leaf = self.templates['identity']
+        database = leaf['resources']['database']
+        self.assertEqual(database['resourceGroup'], "[variables('platformGroup')]")
+        self.assertIn('sql-hd-shared-', database['properties']['parameters']['serverName']['value'])
+        self.assertEqual(database['properties']['parameters']['service']['value'], 'identity')
+        self.assertEqual(leaf['resources']['server']['resourceGroup'], "[variables('platformGroup')]")
+        self.assertIn('sql-hd-shared-', leaf['resources']['server']['name'])
+        shared = self.parameters['sharedSql']
+        identity = self.parameters['identity']
+        self.assertEqual(shared['location']['value'], 'eastus2')
+        self.assertEqual(identity['location']['value'], 'eastus2')
+        common = {'hd:env': 'dev', 'hd:owner': 'honeydrunkstudios', 'hd:adr': 'ADR-0077'}
+        self.assertEqual(shared['tags']['value'], {**common, 'hd:node': 'honeydrunk-infrastructure',
+                                                 'hd:cost-center': 'core-infra', 'hd:dr-tier': 'T1'})
+        self.assertEqual(identity['tags']['value'], {**common, 'hd:node': 'honeydrunk-identity',
+                                                   'hd:cost-center': 'identity', 'hd:dr-tier': 'T2'})
 
     def test_compiled_probes_respect_container_apps_limits(self):
         leaf = self.templates['identity']

@@ -16,6 +16,7 @@ per [ADR-0012](https://github.com/HoneyDrunkStudios/HoneyDrunk.Studio/blob/main/
 |---|---|
 | [`modules/`](./modules) | The seven per-concern reusable modules (networking, compute, identity, data, secrets, messaging, observability). The reusable building blocks. |
 | [`platform/`](./platform) | Shared / foundational resources owned by no single Node: the shared Container Apps Environment, the shared image ACR (`acrhdshared{env}`), Log Analytics, the shared Service Bus namespace, networking. Exports resource IDs that Node templates consume. |
+| [`platform/sql/`](./platform/sql/README.md) | Isolated shared dev SQL server ownership. Separate `target=platform-sql` avoids replaying platform resources; Identity declares only its database on this server. |
 | [`nodes/{node}/`](./nodes) | Thin per-Node leaf templates (`main.bicep` + `parameters.{env}.bicepparam`). One per Node that provisions Azure resources. |
 
 ## Module references are local relative paths — there is no registry
@@ -75,7 +76,9 @@ workflow runs these in addition to the existing lint and secret-scan gates.
 Identity's dev-only preparation and approval stages are documented in
 [nodes/identity](nodes/identity/README.md). Its default leaf does not overwrite
 CD-owned app state; SQL, vault, queues and app maintenance each require explicit
-reviewed inputs. Runtime grants and credential setup remain separate.
+reviewed inputs. Runtime grants and credential setup remain separate. The
+[shared SQL connectivity proposal](platform/sql/connectivity.md) records current
+topology, costed network/runner choices and remaining approval gates.
 
 Bicep templates **never** contain secret values (ADR-0077 D7 / invariant 91).
 Secrets are referenced by Key Vault URI / `keyVaultSecret`; `.bicepparam` files

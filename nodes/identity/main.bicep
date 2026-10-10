@@ -10,22 +10,8 @@ param location string = resourceGroup().location
 @description('Grid ownership and cost tags.')
 param tags object
 
-@sealed()
-type sqlSetup = {
-  @minLength(1)
-  administratorLogin: string
-  @minLength(36)
-  @maxLength(36)
-  administratorObjectId: string
-  firewallRules: {
-    name: string
-    startIpAddress: string
-    endIpAddress: string
-  }[]
-}
-
-@description('Reviewed SQL provisioning/configuration. Null skips SQL writes. No admin identity is invented in source.')
-param databaseSetup sqlSetup?
+@description('Create only the Identity Basic database on the existing platform-owned shared server. No server/admin/firewall writes.')
+param provisionDatabase bool = false
 
 @description('Create the dedicated vault only with an approved resource/cost plan. No certificate or secret value is created.')
 param provisionVault bool = false
@@ -89,19 +75,19 @@ resource vault 'Microsoft.KeyVault/vaults@2024-11-01' existing = if (!bootstrap 
   name: 'kv-hd-identity-${env}'
 }
 resource server 'Microsoft.Sql/servers@2025-01-01' existing = if (!bootstrap && appUpdate != null) {
-  name: 'sql-hd-identity-${env}'
+  name: 'sql-hd-shared-${env}'
+  scope: resourceGroup(platformGroup)
 }
 
-module database '../../modules/data/sqlDatabase.bicep' = if (databaseSetup != null) {
+module database '../../modules/data/sqlDatabase.bicep' = if (provisionDatabase) {
   name: 'identity-sql'
+  scope: resourceGroup(platformGroup)
   params: {
+    serverName: 'sql-hd-shared-${env}'
     service: 'identity'
     env: env
     location: location
     tags: tags
-    administratorLogin: databaseSetup!.administratorLogin
-    administratorObjectId: databaseSetup!.administratorObjectId
-    firewallRules: databaseSetup!.firewallRules
   }
 }
 module newVault '../../modules/secrets/keyVault.bicep' = if (provisionVault) {

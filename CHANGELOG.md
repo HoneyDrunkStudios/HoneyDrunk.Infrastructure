@@ -7,6 +7,13 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Changed
 
+- Separate shared dev SQL server ownership into isolated `platform/sql` and a
+  reusable server module. Identity creates only its tagged Basic database on
+  the existing platform server, preserving server/admin/firewall and CD ownership.
+- Add platform-SQL dispatch/CLI/compiled-boundary tests and stricter firewall
+  input rejection; document costed network, operator and hosted-runner choices.
+  Network provisioning and SQL execution remain held for separate decisions.
+
 - Align Identity administrator UUID validation with Bicep's canonical 36-character
   contract; reject compact, braced and URN forms before CLI transport.
 
