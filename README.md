@@ -4,7 +4,7 @@ Terraform source for the HoneyDrunk Grid's Azure resources. Infrastructure owns
 composition; [HoneyDrunk.Actions](https://github.com/HoneyDrunkStudios/HoneyDrunk.Actions)
 owns reusable validation and future deployment orchestration. The founder's
 October 10 Terraform request replaces the Bicep tool choice for this source
-migration. Studio's ADR-0077/invariants amendment must be coordinated before merge.
+migration, merged in [PR #16](https://github.com/HoneyDrunkStudios/HoneyDrunk.Infrastructure/pull/16). The current module and state-root contracts are documented below.
 
 **Source migration only. No Azure deployment, state adoption or backend has been
 enabled.** The former Bicep dispatcher is removed so a merge does not leave two
