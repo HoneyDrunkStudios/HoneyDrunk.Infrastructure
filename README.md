@@ -36,6 +36,12 @@ and executes only mocked plan tests. It verifies every declared test actually ra
 PRs retain the secret scan and add ownership-contract checks; there is no Azure
 login, live plan or state/plan artifact.
 
+The existing required check is still named `Bicep Lint / Bicep Lint`. It now
+requires both the complete Terraform/ownership validation and secret scan to
+succeed; it fails if either is missing, failed, cancelled or skipped. Keep that
+compatibility context until a separately approved branch-rule migration. Its
+name is not an instruction to run or restore the former Bicep workflow.
+
 Use an isolated Actions checkout at the same SHA as `.github/workflows/pr.yml`:
 
 ```powershell
