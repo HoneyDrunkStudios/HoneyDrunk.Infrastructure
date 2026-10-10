@@ -6,6 +6,8 @@ Provider installation is not evidence of adopted state.
 
 ## Bootstrap proposal
 
+The October 10 follow-up implements the [dedicated bootstrap root and saved-plan helper](../bootstrap/state/README.md). The founder selected the restricted-public single-IP design for development, Entra authentication, seven isolated state containers and the proposed recovery retention. Exact apply and recovery/migration operations remain held for plan review. The local backend exists only for initial bootstrap; application roots never share its ownership.
+
 Approve a dedicated state resource group, globally unique StorageV2 account,
 region/replication and cost. Its lifecycle must be independent of application
 states so they cannot destroy their own backend. Do not repurpose Notify storage.

@@ -12,6 +12,7 @@ active infrastructure writers. Git history retains the old implementation.
 
 | Root | Responsibility |
 | --- | --- |
+| `bootstrap/state` | Independent protected state backend; local bootstrap plan first, reviewed remote migration later |
 | `platform` | Adopt existing shared logs, Container Apps environment, ACR, App Configuration and Service Bus |
 | `platform/app-network` | Proposed dedicated App Service VNet/subnet; no default CIDRs |
 | `platform/sql` | Proposed shared Entra-only logical SQL server; no passwords/firewall bypass |
@@ -24,8 +25,10 @@ active infrastructure writers. Git history retains the old implementation.
 
 `modules/{concern}/{module}` contains 18 reusable AzureRM resource modules and
 safety tests. All root composition is dev/East US 2. Staging/production need a
-separate reviewed design. Resource groups are references, never implicitly created.
-Independent state roots replace destructive provision/delete toggles.
+separate reviewed design. Application resource groups are pre-existing references.
+Independent state roots replace destructive provision/delete toggles. The bootstrap
+root is the explicit exception to pre-existing resource groups: it creates only its
+dedicated backend group. See [bootstrap planning/recovery](bootstrap/state/README.md).
 
 ## Credential-free validation
 

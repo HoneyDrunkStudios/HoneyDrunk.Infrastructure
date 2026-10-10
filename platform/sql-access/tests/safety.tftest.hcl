@@ -14,6 +14,28 @@ variables {
 }
 run "safe_development_contract" {
   command = plan
+  assert {
+    condition     = length(azurerm_mssql_firewall_rule.operator) == 0
+    error_message = "Operator access must be absent outside a reviewed window."
+  }
+}
+run "single_operator_window" {
+  command = plan
+  variables { operator_ipv4 = "203.0.113.7" }
+  assert {
+    condition     = length(azurerm_mssql_firewall_rule.operator) == 1 && azurerm_mssql_firewall_rule.operator["nov-schema-window"].start_ip_address == "203.0.113.7" && azurerm_mssql_firewall_rule.operator["nov-schema-window"].end_ip_address == "203.0.113.7"
+    error_message = "The maintenance rule must cover exactly one address."
+  }
+}
+run "reject_operator_bypass" {
+  command = plan
+  variables { operator_ipv4 = "0.0.0.0" }
+  expect_failures = [var.operator_ipv4]
+}
+run "reject_operator_range" {
+  command = plan
+  variables { operator_ipv4 = "203.0.113.0/24" }
+  expect_failures = [var.operator_ipv4]
 }
 run "reject_production" {
   command = plan

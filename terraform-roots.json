@@ -1,4 +1,5 @@
 [
+  "bootstrap/state",
   "platform",
   "platform/app-network",
   "platform/sql",

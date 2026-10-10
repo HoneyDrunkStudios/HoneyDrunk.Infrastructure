@@ -5,6 +5,8 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+- Add a protected state bootstrap root and read-only saved-plan helper: seven private containers, Entra authentication, single-IP firewall, recovery retention and container-scoped operator access. Add an optional single-IP SQL maintenance rule, absent by default. No apply, grant or deployment was executed.
+
 ### Terraform source migration
 
 - Replace active Bicep content/dispatcher with 18 pinned AzureRM modules and nine

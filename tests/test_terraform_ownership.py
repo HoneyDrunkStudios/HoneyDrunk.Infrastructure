@@ -74,7 +74,7 @@ class TerraformOwnershipTests(unittest.TestCase):
 
     def test_roots_have_no_destroy_switch_or_deployment_trigger(self):
         roots = json.loads((ROOT / 'terraform-roots.json').read_text())
-        self.assertEqual(len(roots), 9)
+        self.assertEqual(len(roots), 10)
         for root in roots:
             data = config(f'{root}/main.tf')
             for module in data.get('module', []):
