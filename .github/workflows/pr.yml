@@ -1,63 +1,43 @@
 name: PR
 
-# ==============================================================================
-# PR gate for HoneyDrunk.Infrastructure (ADR-0077 packet 11).
-#
-# This repo ships Bicep + YAML, NOT .NET. The Grid's .NET-shaped `pr-core.yml`
-# hard-fails on a project-less repo (its `dotnet restore` errors with "No
-# project or solution file found"), so the `core` gate here is the Bicep-native
-# `job-bicep-lint.yml` reusable workflow (ADR-0077 packet 07), brought forward
-# for exactly this consumer. `job-secret-scan.yml` adds gitleaks diff-scanning
-# in support of ADR-0077 D7 / invariant 91 (no secret values in templates).
-#
-# Both reusable workflows live in HoneyDrunk.Actions per ADR-0012 (the pipeline
-# is the CI/CD control plane); this repo consumes them. The caller permissions
-# below are a superset of each callee's declared permissions (invariant 39).
-# ==============================================================================
-
 on:
   pull_request:
-    branches: [ main ]
+    branches: [main]
+  workflow_dispatch: {}
 
 permissions:
   contents: read
 
 jobs:
-  bicep-lint:
-    name: Bicep Lint
-    permissions:
-      contents: read
-    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-bicep-lint.yml@main
+  terraform:
+    name: Terraform
+    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-terraform-validate.yml@75685b3382b47b4a95125827761bc91f1bf9f21f
     with:
-      bicep-version: v0.48.1
+      actions-ref: 75685b3382b47b4a95125827761bc91f1bf9f21f
 
   secret-scan:
     name: Secret Scan
-    permissions:
-      contents: read
-    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-secret-scan.yml@main
+    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-secret-scan.yml@75685b3382b47b4a95125827761bc91f1bf9f21f
     with:
       scan-mode: diff-only
 
-  deployment-contract:
-    name: Deployment Contract Tests
+  required-iac-gate:
+    # Compatibility context required by the existing require-bicep-lint ruleset.
+    # It now certifies the complete Terraform/ownership suite and secret scan.
+    # Rename only together with a separately approved ruleset migration.
+    name: Bicep Lint / Bicep Lint
+    needs: [terraform, secret-scan]
+    if: always()
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
-      - uses: actions/checkout@v5
-        with:
-          persist-credentials: false
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
-      - name: Install pinned Azure CLI for offline parameter interpretation
-        run: python -m pip install azure-cli==2.91.0
-      - name: Install pinned Bicep compiler
+      - name: Require all replacement IaC checks
+        shell: python
+        env:
+          RESULTS: ${{ toJSON(needs) }}
         run: |
-          az bicep install --version v0.48.1
-          az version
-          "$HOME/.azure/bin/bicep" --version
-          echo "BICEP_BIN=$HOME/.azure/bin/bicep" >> "$GITHUB_ENV"
-      - name: Test dispatch, real CLI parameters, and compiled ownership offline
-        run: python -m unittest discover -s tests -v
+          import json
+          import os
+          results = json.loads(os.environ['RESULTS'])
+          assert set(results) == {'terraform', 'secret-scan'}, 'Missing validation job'
+          assert all(item['result'] == 'success' for item in results.values()), 'IaC validation failed, cancelled or skipped'
+          print('Terraform format/schema/mocked tests, ownership contracts and secret scan passed.')

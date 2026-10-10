@@ -1,0 +1,7 @@
+# Copy outside the repository after approval. No credentials here.
+environment = "dev"
+location = "eastus2"
+subscription_id = "<approved-subscription-uuid>"
+tenant_id = "<workforce-tenant-uuid>"
+network_cidr = "<approved-vnet-cidr>"
+subnet_cidr = "<approved-integration-subnet-cidr>"
