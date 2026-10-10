@@ -1,7 +1,7 @@
 targetScope = 'resourceGroup'
 
-@description('This leaf is deliberately dev-only until recovery and lifecycle acceptance are complete.')
-@allowed(['dev'])
+@description('Environment-qualified source; only dev parameters are implemented and dispatch-approved.')
+@allowed(['dev', 'staging', 'prod'])
 param env string
 
 @description('Azure region.')
@@ -16,15 +16,13 @@ param provisionDatabase bool = false
 @description('Create the dedicated vault only with an approved resource/cost plan. No certificate or secret value is created.')
 param provisionVault bool = false
 
-@description('First app creation only: public placeholder at a named revision, without secrets or registry credentials.')
+@description('First creation only: dedicated Linux plan and stopped placeholder Web App with system MI. No grants, credentials or serving API.')
 param bootstrap bool = false
 
 @sealed()
 type appConfiguration = {
   @minLength(1)
   image: string
-  @minLength(1)
-  trafficRevision: string
   @minLength(1)
   authority: string
   @minLength(1)
@@ -46,18 +44,25 @@ type appConfiguration = {
   otlpEndpoint: string
 }
 
-@description('Explicit reviewed initialization/maintenance only. Null references the CD-owned app; never overwrites image, revisions or traffic in steady state.')
+@description('Explicit reviewed initialization/maintenance only. Null references the CD-owned app; never overwrites its image or settings in steady state.')
 param appUpdate appConfiguration?
 
 @description('Create lifecycle queues only after separate consumer/recovery review. This does not enable API delivery or assign roles.')
 param provisionLifecycleQueues bool = false
 
 var platformGroup = 'rg-hd-platform-${env}'
-var appName = 'ca-hd-identity-${env}'
+@description('Proposed globally unique Web App name. Verify availability before provisioning; override for a reviewed collision resolution.')
+param appName string = 'app-hd-identity-${env}'
+@description('Dedicated Linux plan sizing for the selected environment.')
+param planSkuName string = 'B1'
+param planSkuTier string = 'Basic'
+@minValue(1)
+param planCapacity int = 1
+var planName = 'asp-hd-identity-${env}'
 var manageApp = bootstrap || appUpdate != null
 
-resource environment 'Microsoft.App/managedEnvironments@2025-07-01' existing = {
-  name: 'cae-hd-${env}'
+resource subnet 'Microsoft.Network/virtualNetworks/subnets@2025-01-01' existing = if (manageApp) {
+  name: 'vnet-hd-apps-${env}/snet-app-service'
   scope: resourceGroup(platformGroup)
 }
 resource registry 'Microsoft.ContainerRegistry/registries@2025-11-01' existing = {
@@ -68,7 +73,7 @@ resource logs 'Microsoft.OperationalInsights/workspaces@2025-07-01' existing = {
   name: 'log-hd-shared-${env}'
   scope: resourceGroup(platformGroup)
 }
-resource existingApp 'Microsoft.App/containerApps@2025-07-01' existing = if (!manageApp) {
+resource existingApp 'Microsoft.Web/sites@2024-11-01' existing = if (!manageApp) {
   name: appName
 }
 resource vault 'Microsoft.KeyVault/vaults@2024-11-01' existing = if (!bootstrap && appUpdate != null) {
@@ -126,34 +131,34 @@ var runtimeEnv = appUpdate == null ? [] : concat([
   { name: 'OTEL_EXPORTER_OTLP_ENDPOINT', value: appUpdate!.otlpEndpoint }
 ], originEnv)
 
-module app '../../modules/compute/containerApp.bicep' = if (manageApp) {
-  name: 'identity-app'
+// Only bootstrap creates the dedicated plan. Later sizing changes require a
+// reviewed plan-only operation; default node runs do not mutate compute.
+module plan '../../modules/compute/appServicePlan.bicep' = if (bootstrap) {
+  name: 'identity-app-service-plan'
   params: {
-    service: 'identity'
-    env: env
+    name: planName
     location: location
     tags: tags
-    containerAppEnvironmentId: environment.id
-    image: bootstrap ? 'mcr.microsoft.com/azuredocs/aci-helloworld@sha256:456a1150aa41340a14c7be1342deda2cde9e6e7df9fde6b8a69de0ae04f92fad' : appUpdate!.image
-    revisionSuffix: bootstrap ? 'bootstrap' : ''
-    targetPort: bootstrap ? 80 : 8080
-    traffic: [{ revisionName: bootstrap ? '${appName}--bootstrap' : appUpdate!.trafficRevision, latestRevision: false, weight: 100 }]
-    minReplicas: bootstrap ? 0 : 1
-    maxReplicas: 2
-    cpu: '0.25'
-    memory: '0.5Gi'
-    envVars: bootstrap ? [] : runtimeEnv
-    registries: bootstrap ? [] : [{ server: registry.properties.loginServer, identity: 'system' }]
-    probes: bootstrap ? [] : runtimeProbes
+    skuName: planSkuName
+    skuTier: planSkuTier
+    capacity: planCapacity
   }
 }
-
-// Container Apps permits at most 10 failures; retain a 150-second startup allowance.
-var runtimeProbes = [
-  { type: 'Startup', httpGet: { path: '/health/live', port: 8080 }, periodSeconds: 15, failureThreshold: 10 }
-  { type: 'Liveness', httpGet: { path: '/health/live', port: 8080 }, periodSeconds: 10, failureThreshold: 3 }
-  { type: 'Readiness', httpGet: { path: '/health', port: 8080 }, periodSeconds: 10, timeoutSeconds: 5, failureThreshold: 3 }
-]
+module app '../../modules/compute/appServiceContainer.bicep' = if (manageApp) {
+  name: 'identity-app-service'
+  params: {
+    name: appName
+    location: location
+    tags: tags
+    planId: bootstrap ? plan!.outputs.id : resourceId('Microsoft.Web/serverfarms', planName)
+    subnetId: subnet!.id
+    image: bootstrap ? 'mcr.microsoft.com/azuredocs/aci-helloworld@sha256:456a1150aa41340a14c7be1342deda2cde9e6e7df9fde6b8a69de0ae04f92fad' : appUpdate!.image
+    enabled: !bootstrap
+    port: bootstrap ? 80 : 8080
+    healthPath: bootstrap ? '/' : '/health'
+    appSettings: bootstrap ? [] : concat(runtimeEnv, [{ name: 'DOCKER_REGISTRY_SERVER_URL', value: 'https://${registry.properties.loginServer}' }])
+  }
+}
 
 // Source-only queue preparation; no topics are needed by the current per-consumer
 // queue contract. Consumer implementation, grants and lifecycle activation are separate.
@@ -169,5 +174,5 @@ module queues '../../modules/messaging/serviceBusQueue.bicep' = [for name in ['i
 @description('App managed identity. SQL contained-user and Azure resource grants require separate approved setup.')
 output principalId string = manageApp ? app!.outputs.principalId : existingApp!.identity.principalId
 
-@description('Identity API hostname on the existing shared environment.')
-output fqdn string = manageApp ? app!.outputs.fqdn : existingApp!.properties.configuration.ingress.fqdn
+@description('Azure-returned Web App hostname; never infer a live hostname from the planned name.')
+output fqdn string = manageApp ? app!.outputs.fqdn : existingApp!.properties.defaultHostName

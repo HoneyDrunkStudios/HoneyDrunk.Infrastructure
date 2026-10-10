@@ -128,13 +128,25 @@ class AzureCliParameterTests(unittest.TestCase):
         template, template_spec, parameters = self.resource._parse_bicepparam_file(
             self.command, template_file=None, parameters=parameter_lists)
         self.assertIsNone(template_spec)
-        if parameter_file.parent.name == 'sql':
+        if parameter_file.parent.name == 'app-network':
+            self.assertEqual(json.loads(template)['parameters']['networkSetup']['$ref'], '#/definitions/networkConfiguration')
+        elif parameter_file.parent.name == 'sql':
             self.assertEqual(json.loads(template)['parameters']['serverSetup']['$ref'], '#/definitions/sqlSetup')
         else:
             expected_type = 'appConfiguration' if parameter_file.parent.name == 'identity' else 'containerAppUpdate'
             self.assertEqual(json.loads(template)['parameters']['appUpdate']['$ref'], f'#/definitions/{expected_type}')
         self.assertNotIn('BICEP_PARAMETERS_OVERRIDES', self.compiler_calls[0][1])
         return json.loads(parameters)['parameters']
+
+    def test_network_cidrs_and_sql_rule_are_explicit_real_cli_inputs(self):
+        settings = {'networkSetup': {'addressPrefix': '10.91.0.0/16', 'subnetPrefix': '10.91.1.0/26'}}
+        result = resolver.resolve('dev', 'platform-app-network', network_parameters=json.dumps(settings))
+        parameters = self.prepare(result['additional-parameters'], ROOT / 'platform/app-network/parameters.dev.bicepparam')
+        self.assertEqual(parameters['networkSetup']['value'], settings['networkSetup'])
+        result = resolver.resolve('dev', 'platform-sql', sql_parameters='{"allowAppServiceSubnet":true}')
+        parameters = self.prepare(result['additional-parameters'], ROOT / 'platform/sql/parameters.dev.bicepparam')
+        self.assertIs(parameters['allowAppServiceSubnet']['value'], True)
+        self.assertNotIn('serverSetup', parameters)
 
     def test_shared_sql_settings_preserve_spaces_through_real_cli(self):
         expected = {'administratorLogin': 'Shared SQL Admins',

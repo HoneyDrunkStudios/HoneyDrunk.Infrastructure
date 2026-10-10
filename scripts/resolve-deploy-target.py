@@ -10,18 +10,21 @@ from urllib.parse import urlsplit
 
 
 def resolve(env, target, node='', bootstrap=False, manage_app=False,
-            app_image='', traffic_revision='', identity_parameters='', sql_parameters=''):
+            app_image='', traffic_revision='', identity_parameters='', sql_parameters='', network_parameters=''):
     if env not in {'dev', 'staging', 'prod'}:
         raise ValueError('env must be dev, staging, or prod')
     if identity_parameters and (env, target, node) != ('dev', 'node', 'identity'):
         raise ValueError('identity-parameters is only valid for node=identity, env=dev')
     if sql_parameters and (env, target) != ('dev', 'platform-sql'):
         raise ValueError('sql-parameters is only valid for target=platform-sql, env=dev')
+    if network_parameters and (env, target) != ('dev', 'platform-app-network'):
+        raise ValueError('network-parameters is only valid for target=platform-app-network, env=dev')
     overrides = ''
-    if target == 'platform-sql':
+    if target in {'platform-sql', 'platform-app-network'}:
         if env != 'dev' or node or bootstrap or manage_app or app_image or traffic_revision:
-            raise ValueError('platform-sql is dev-only and cannot accept node/app inputs')
-        directory, group = 'platform/sql', 'rg-hd-platform-dev'
+            raise ValueError('isolated platform targets are dev-only and cannot accept node/app inputs')
+        directory = 'platform/sql' if target == 'platform-sql' else 'platform/app-network'
+        group = 'rg-hd-platform-dev'
     elif target == 'platform':
         if manage_app or app_image or traffic_revision:
             raise ValueError('app maintenance inputs require target=node, node=pulse')
@@ -57,13 +60,16 @@ def resolve(env, target, node='', bootstrap=False, manage_app=False,
         elif bootstrap:
             overrides = 'bootstrap=true'
     else:
-        raise ValueError('target must be platform, platform-sql or node')
+        raise ValueError('target must be platform, platform-sql, platform-app-network or node')
     if identity_parameters:
         settings = json.loads(identity_parameters)
         validate_identity_settings(settings, bootstrap)
     elif sql_parameters:
         settings = json.loads(sql_parameters)
         validate_sql_settings(settings)
+    elif network_parameters:
+        settings = json.loads(network_parameters)
+        validate_network_settings(settings)
     else:
         settings = {}
     if settings:
@@ -77,8 +83,10 @@ def resolve(env, target, node='', bootstrap=False, manage_app=False,
 
 def validate_sql_settings(settings):
     """Server administration and firewall inputs belong only to platform/sql."""
-    if not isinstance(settings, dict) or settings.keys() - {'serverSetup'}:
+    if not isinstance(settings, dict) or settings.keys() - {'serverSetup', 'allowAppServiceSubnet'}:
         raise ValueError('sql-parameters contains unsupported fields')
+    if 'allowAppServiceSubnet' in settings and type(settings['allowAppServiceSubnet']) is not bool:
+        raise ValueError('allowAppServiceSubnet must be a boolean')
     database = settings.get('serverSetup')
     if database is not None:
         if not isinstance(database, dict) or set(database) != {'administratorLogin', 'administratorObjectId', 'firewallRules'}:
@@ -109,6 +117,29 @@ def validate_sql_settings(settings):
                 raise ValueError('SQL firewall must use ordered, explicit addresses; no Azure-services bypass')
 
 
+def validate_network_settings(settings):
+    """Reject invalid/private-space mistakes locally; live overlap approval is separate."""
+    if not isinstance(settings, dict) or settings.keys() - {'networkSetup'}:
+        raise ValueError('network-parameters contains unsupported fields')
+    setup = settings.get('networkSetup')
+    if setup is None:
+        return
+    if not isinstance(setup, dict) or set(setup) != {'addressPrefix', 'subnetPrefix'}:
+        raise ValueError('networkSetup requires reviewed addressPrefix and subnetPrefix')
+    networks = []
+    private_blocks = [ipaddress.IPv4Network(value) for value in ['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']]
+    for key in ['addressPrefix', 'subnetPrefix']:
+        if not isinstance(setup[key], str):
+            raise ValueError('CIDRs must be explicit canonical IPv4 strings')
+        network = ipaddress.IPv4Network(setup[key], strict=True)
+        if str(network) != setup[key] or not any(network.subnet_of(block) for block in private_blocks):
+            raise ValueError('Use canonical RFC1918 IPv4 CIDRs after overlap review')
+        networks.append(network)
+    vnet, subnet = networks
+    if not subnet.subnet_of(vnet) or subnet.prefixlen > 28:
+        raise ValueError('App Service subnet must be inside the VNet and /28 or larger; /26 is recommended')
+
+
 def validate_identity_settings(settings, bootstrap):
     """Accept only node-owned nonsecret configuration before Azure login."""
     allowed = {'provisionDatabase', 'provisionVault', 'provisionLifecycleQueues', 'appUpdate'}
@@ -119,7 +150,7 @@ def validate_identity_settings(settings, bootstrap):
             raise ValueError(f'{key} must be a boolean')
     update = settings.get('appUpdate')
     if update is not None:
-        required = {'image', 'trafficRevision', 'authority', 'issuer', 'audience', 'mobileClientId',
+        required = {'image', 'authority', 'issuer', 'audience', 'mobileClientId',
                     'apiScope', 'graphTenantId', 'graphClientId', 'graphCertificateSecretName',
                     'allowedOrigins', 'otlpEndpoint'}
         if not isinstance(update, dict) or set(update) != required:
@@ -139,10 +170,6 @@ def validate_identity_settings(settings, bootstrap):
                     or any(character.isspace() for character in origin) or '\\' in origin
                     or (port is None and parsed.netloc.endswith(':'))):
                 raise ValueError('allowedOrigins must contain exact HTTPS origins without paths or credentials')
-        suffix = update['trafficRevision'].removeprefix('ca-hd-identity-dev--')
-        if (not re.fullmatch(r'ca-hd-identity-dev--[a-z0-9][a-z0-9-]{0,63}', update['trafficRevision'])
-                or '--' in suffix or suffix.endswith('-')):
-            raise ValueError('Identity maintenance requires its full known-good revision name')
         if not re.fullmatch(r'acrhdshareddev\.azurecr\.io/honeydrunk-identity-api@sha256:[a-f0-9]{64}', update['image']):
             raise ValueError('Identity maintenance requires a reviewed ACR image digest')
         if not re.fullmatch(r'[A-Za-z0-9-]{1,127}', update['graphCertificateSecretName']):
@@ -155,7 +182,8 @@ def main():
                          os.getenv('BOOTSTRAP', 'false') == 'true',
                          os.getenv('MANAGE_APP', 'false') == 'true',
                          os.getenv('APP_IMAGE', ''), os.getenv('TRAFFIC_REVISION', ''),
-                         os.getenv('IDENTITY_PARAMETERS', ''), os.getenv('SQL_PARAMETERS', ''))
+                         os.getenv('IDENTITY_PARAMETERS', ''), os.getenv('SQL_PARAMETERS', ''),
+                         os.getenv('NETWORK_PARAMETERS', ''))
         for key in ('template-path', 'parameters-path'):
             if not Path(result[key]).is_file():
                 raise ValueError(f'{key} does not exist: {result[key]}')

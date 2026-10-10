@@ -1,7 +1,6 @@
 """Synthetic, nonsecret configuration used by resolver and real CLI contract tests."""
 APP_UPDATE = {
     'image': 'acrhdshareddev.azurecr.io/honeydrunk-identity-api@sha256:' + 'a' * 64,
-    'trafficRevision': 'ca-hd-identity-dev--known-good',
     'authority': 'https://example.ciamlogin.com/example.onmicrosoft.com/v2.0',
     'issuer': 'https://example.ciamlogin.com/11111111-1111-1111-1111-111111111111/v2.0',
     'audience': '11111111-1111-1111-1111-111111111111',

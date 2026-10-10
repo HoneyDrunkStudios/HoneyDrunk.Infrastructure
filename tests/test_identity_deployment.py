@@ -15,13 +15,33 @@ spec.loader.exec_module(resolver)
 
 
 class IdentityDispatchTests(unittest.TestCase):
+    def test_network_requires_reviewed_private_cidrs_and_correct_target(self):
+        valid = {'networkSetup': {'addressPrefix': '10.91.0.0/16', 'subnetPrefix': '10.91.1.0/26'}}
+        result = resolver.resolve('dev', 'platform-app-network', network_parameters=json.dumps(valid))
+        self.assertEqual(result['template-path'], 'platform/app-network/main.bicep')
+        self.assertEqual(resolver.resolve('dev', 'platform-app-network')['additional-parameters'], '')
+        invalid = [[], {'unexpected': True}, {'networkSetup': {}},
+                   {'networkSetup': {'addressPrefix': '192.0.2.0/24', 'subnetPrefix': '192.0.2.0/26'}},
+                   {'networkSetup': {'addressPrefix': '10.91.0.0/16', 'subnetPrefix': '10.92.0.0/26'}},
+                   {'networkSetup': {'addressPrefix': '10.91.0.0/16', 'subnetPrefix': '10.91.1.0/29'}},
+                   {'networkSetup': {'addressPrefix': '10.91.0.0/16', 'subnetPrefix': '10.91.1.1/26'}}]
+        for settings in invalid:
+            with self.subTest(settings=settings), self.assertRaises(ValueError):
+                resolver.resolve('dev', 'platform-app-network', network_parameters=json.dumps(settings))
+        for args in [dict(env='prod', target='platform-app-network'),
+                     dict(env='dev', target='platform-app-network', bootstrap=True),
+                     dict(env='dev', target='platform-app-network', node='identity'),
+                     dict(env='dev', target='platform-sql', network_parameters='{}')]:
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                resolver.resolve(**args)
+        with self.assertRaises(ValueError):
+            resolver.resolve('dev', 'platform-sql', sql_parameters='{"allowAppServiceSubnet":"true"}')
+
     def test_rejects_invalid_app_configuration(self):
         cases = {
             'image': ['acrhdshareddev.azurecr.io/honeydrunk-identity-api:latest',
                       'acrhdshareddev.azurecr.io/honeydrunk-identity-api@sha256:' + 'a' * 63,
                       'other.azurecr.io/honeydrunk-identity-api@sha256:' + 'a' * 64],
-            'trafficRevision': ['latest', 'ca-hd-pulse-dev--good', 'ca-hd-identity-dev--bad--suffix',
-                                'ca-hd-identity-dev--bad-', 'ca-hd-identity-dev--UPPER'],
             'graphCertificateSecretName': ['', 'secret/version', 'secret_value', 'a' * 128],
             'allowedOrigins': ['https://example.com', [123], ['http://example.com'],
                                ['https://example.com/path'], ['https://example.com/'],
@@ -123,14 +143,18 @@ class IdentityDeploymentTests(unittest.TestCase):
             'sqlServer': 'modules/data/sqlServer.bicep',
             'sharedSql': 'platform/sql/main.bicep',
             'queue': 'modules/messaging/serviceBusQueue.bicep',
-            'app': 'modules/compute/containerApp.bicep',
+            'app': 'modules/compute/appServiceContainer.bicep',
+            'plan': 'modules/compute/appServicePlan.bicep',
+            'network': 'modules/networking/appServiceNetwork.bicep',
+            'networkLeaf': 'platform/app-network/main.bicep',
+            'sqlRule': 'modules/data/sqlVirtualNetworkRule.bicep',
         }.items():
             output = Path(cls.temp.name) / f'{key}.json'
             subprocess.run([os.environ['BICEP_BIN'], 'build', str(ROOT / path),
                             '--outfile', str(output)], check=True, capture_output=True)
             cls.templates[key] = json.loads(output.read_text(encoding='utf-8-sig'))
         cls.parameters = {}
-        for key, path in {'identity': 'nodes/identity', 'sharedSql': 'platform/sql'}.items():
+        for key, path in {'identity': 'nodes/identity', 'sharedSql': 'platform/sql', 'network': 'platform/app-network'}.items():
             output = Path(cls.temp.name) / f'{key}.parameters.json'
             subprocess.run([os.environ['BICEP_BIN'], 'build-params',
                             str(ROOT / path / 'parameters.dev.bicepparam'), '--outfile', str(output)],
@@ -152,16 +176,25 @@ class IdentityDeploymentTests(unittest.TestCase):
         self.assertEqual(leaf['resources']['database']['condition'], "[parameters('provisionDatabase')]")
         self.assertNotIn('Microsoft.Authorization/roleAssignments', json.dumps(leaf))
 
-    def test_app_uses_named_traffic_and_distinct_health_probes(self):
-        parameters = self.templates['identity']['resources']['app']['properties']['parameters']
-        traffic = parameters['traffic']['value'][0]
-        self.assertIs(traffic['latestRevision'], False)
-        self.assertEqual(traffic['weight'], 100)
-        source = (ROOT / 'nodes/identity/main.bicep').read_text()
-        self.assertIn("path: '/health/live'", source)
-        self.assertIn("path: '/health'", source)
-        self.assertNotIn('Lifecycle__ServiceBusNamespace', source)
-        self.assertNotIn('ca-hd-pulse', source)
+    def test_app_is_linux_b1_with_managed_identity_and_no_aca_dependency(self):
+        leaf = self.templates['identity']
+        plan = self.templates['plan']
+        app = self.templates['app']
+        self.assertEqual(plan['parameters']['skuName']['defaultValue'], 'B1')
+        self.assertEqual(plan['parameters']['capacity']['defaultValue'], 1)
+        self.assertEqual(leaf['resources']['plan']['condition'], "[parameters('bootstrap')]")
+        resources = app['resources']
+        site = resources['app'] if isinstance(resources, dict) else next(r for r in resources if r['type'] == 'Microsoft.Web/sites')
+        self.assertEqual(site['identity']['type'], 'SystemAssigned')
+        self.assertTrue(site['properties']['siteConfig']['acrUseManagedIdentityCreds'])
+        self.assertTrue(site['properties']['httpsOnly'])
+        self.assertTrue(site['properties']['siteConfig']['alwaysOn'])
+        self.assertEqual(site['properties']['outboundVnetRouting'], {
+            'applicationTraffic': True, 'allTraffic': False, 'imagePullTraffic': False})
+        self.assertIn('subnetId', site['properties']['virtualNetworkSubnetId'])
+        for forbidden in ['Microsoft.App/', 'trafficRevision', 'latestRevision', 'cae-hd-', 'roleAssignments']:
+            self.assertNotIn(forbidden, json.dumps(leaf))
+        self.assertIn("not(parameters('bootstrap'))", leaf['resources']['app']['properties']['parameters']['enabled']['value'])
 
     def test_sql_uses_entra_only_and_restrictive_defaults(self):
         template = self.templates['sqlServer']
@@ -195,7 +228,9 @@ class IdentityDeploymentTests(unittest.TestCase):
     def test_shared_server_leaf_has_no_app_database_or_platform_redeployment(self):
         leaf = self.templates['sharedSql']
         self.assertIs(leaf['parameters']['serverSetup']['nullable'], True)
-        self.assertEqual(set(leaf['resources']), {'server'})
+        self.assertEqual(set(leaf['resources']), {'server', 'appServiceRule'})
+        self.assertIs(leaf['parameters']['allowAppServiceSubnet']['defaultValue'], False)
+        self.assertEqual(leaf['resources']['appServiceRule']['condition'], "[parameters('allowAppServiceSubnet')]")
         self.assertIn("parameters('serverSetup')", leaf['resources']['server']['condition'])
         for forbidden in ['Microsoft.App/', 'Microsoft.Authorization/', 'Microsoft.Sql/servers/databases']:
             self.assertNotIn(forbidden, json.dumps(leaf))
@@ -219,24 +254,31 @@ class IdentityDeploymentTests(unittest.TestCase):
         self.assertEqual(identity['tags']['value'], {**common, 'hd:node': 'honeydrunk-identity',
                                                    'hd:cost-center': 'identity', 'hd:dr-tier': 'T2'})
 
-    def test_compiled_probes_respect_container_apps_limits(self):
-        leaf = self.templates['identity']
-        self.assertIn("variables('runtimeProbes')", json.dumps(leaf['resources']['app']['properties']['parameters']['probes']))
-        probes = leaf['variables']['runtimeProbes']
-        self.assertEqual({probe['type'] for probe in probes}, {'Startup', 'Liveness', 'Readiness'})
-        for probe in probes:
-            for field, maximum in [('failureThreshold', 10), ('initialDelaySeconds', 60),
-                                   ('periodSeconds', 240), ('timeoutSeconds', 240), ('successThreshold', 10)]:
-                if field in probe:
-                    with self.subTest(probe=probe['type'], field=field):
-                        self.assertGreaterEqual(probe[field], 1)
-                        self.assertLessEqual(probe[field], maximum)
-            if probe['type'] in {'Startup', 'Liveness'}:
-                self.assertEqual(probe.get('successThreshold', 1), 1)
-            self.assertEqual(probe['httpGet']['port'], 8080)
-            self.assertEqual(probe['httpGet']['path'], '/health' if probe['type'] == 'Readiness' else '/health/live')
-        startup = next(probe for probe in probes if probe['type'] == 'Startup')
-        self.assertEqual(startup['periodSeconds'] * startup['failureThreshold'], 150)
+    def test_warmup_health_and_stopped_bootstrap_do_not_claim_slots(self):
+        app = self.templates['app']
+        source = (ROOT / 'modules/compute/appServiceContainer.bicep').read_text()
+        self.assertEqual(app['parameters']['healthPath']['defaultValue'], '/health')
+        self.assertEqual(app['parameters']['port']['defaultValue'], 8080)
+        for name in ['WEBSITES_PORT', 'WEBSITE_WARMUP_PATH', 'WEBSITE_WARMUP_STATUSES', 'WEBSITE_HEALTHCHECK_MAXPINGFAILURES']:
+            self.assertIn(name, source)
+        self.assertIn("value: '200'", source)
+        self.assertNotIn('Microsoft.Web/sites/slots', json.dumps(app))
+
+    def test_network_has_exact_delegation_and_sql_endpoint_without_selected_cidrs(self):
+        leaf = self.templates['networkLeaf']
+        self.assertTrue(leaf['parameters']['networkSetup']['nullable'])
+        self.assertNotIn('networkSetup', self.parameters['network'])
+        network = self.templates['network']['resources']
+        network = network['network'] if isinstance(network, dict) else network[0]
+        subnet, = network['properties']['subnets']
+        props = subnet['properties']
+        self.assertEqual(props['delegations'][0]['properties']['serviceName'], 'Microsoft.Web/serverFarms')
+        self.assertEqual(props['serviceEndpoints'][0]['service'], 'Microsoft.Sql')
+        self.assertNotIn('Microsoft.Authorization/', json.dumps(leaf))
+        rules = self.templates['sqlRule']['resources']
+        rule = rules['rule'] if isinstance(rules, dict) else next(r for r in rules if r['type'].endswith('/virtualNetworkRules'))
+        self.assertFalse(rule['properties']['ignoreMissingVnetServiceEndpoint'])
+        self.assertNotIn('Microsoft.Sql/servers/databases', json.dumps(self.templates['sqlRule']))
 
     def test_queue_has_bounded_retry_and_dead_lettering(self):
         resources = self.templates['queue']['resources']

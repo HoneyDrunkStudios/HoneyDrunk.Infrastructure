@@ -43,6 +43,7 @@ on:
         options:
           - platform
           - platform-sql
+          - platform-app-network
           - node
       node:
         description: 'Node short name (required when target=node, e.g. notify). Ignored for target=platform.'
@@ -86,6 +87,11 @@ on:
         required: false
         type: string
 
+      network-parameters:
+        description: 'platform-app-network dev only: reviewed networkSetup addressPrefix/subnetPrefix JSON. Empty writes nothing; CIDR overlap and live approval required.'
+        required: false
+        type: string
+
 # Superset of the called workflow's needs (invariant 39):
 #   id-token: write  (OIDC federation)   contents: read  (checkout)
 permissions:
@@ -119,6 +125,7 @@ jobs:
           TRAFFIC_REVISION: ${{ inputs.traffic-revision }}
           IDENTITY_PARAMETERS: ${{ inputs.identity-parameters }}
           SQL_PARAMETERS: ${{ inputs.sql-parameters }}
+          NETWORK_PARAMETERS: ${{ inputs.network-parameters }}
         run: python3 scripts/resolve-deploy-target.py
 
   gate:
