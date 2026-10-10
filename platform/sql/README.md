@@ -76,9 +76,13 @@ resources. The existing non-VNet ACA environment does not supply guaranteed
 static egress. Creating a SQL server is not proof the application can connect.
 The proposed new network/environment is not selected or implemented by this PR.
 
+Initial schema review is proposed from an approved workstation /32 using workforce
+Entra/MFA and inspection-only SQL access. Later automation can use GitHub Team's
+Azure private networking on a separate runner subnet after setup/permission review;
+assigned static-IP larger runners require Enterprise Cloud and are not proposed.
 Identity's SQL Script/DeployReport workflow and tenant-only OIDC identities remain
-separate. **SQL execution stays disabled** pending the explicit all-DDL-writer
-maintenance-freeze decision and a supported executor with real database tests.
+prepared for that later option. **SQL execution stays disabled** pending the explicit
+all-DDL-writer maintenance-freeze decision and a supported executor with real database tests.
 Shared topology approval does not accept a freeze, grant access, or enable Publish.
 
 ## Validation

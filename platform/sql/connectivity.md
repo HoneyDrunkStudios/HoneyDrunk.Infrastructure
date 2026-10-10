@@ -24,15 +24,19 @@ The existing shared ACR and logs can still be reused with either candidate. SQL
 name availability returned true for `sql-hd-shared-dev`; it is not reserved.
 The org read API reports GitHub **Team**. Both the organization's hosted-larger-runner
 list and Identity's self-hosted runner list are empty. No runner was created.
+Team supports larger runners, but **assigned static public IP ranges require
+GitHub Enterprise Cloud**. The earlier Team/static-IP recommendation was incorrect
+and is withdrawn; no Enterprise upgrade is proposed.
+[Static-IP eligibility](https://docs.github.com/en/actions/how-tos/manage-runners/larger-runners/manage-larger-runners#creating-static-ip-addresses-for-larger-runners).
 
 ## Options and recommendation
 
 | Option | Boundary and feasibility | Incremental network fixed cost, 730 hours |
 |---|---|---:|
 | Existing `cae-hd-dev`, explicit current app IP allowlist | No guaranteed static egress. Can support a consciously accepted temporary dev trial after the real Identity IP list is observed, but changes can break SQL. Not the recommended stable design; no Pulse IP reuse or broad allowlist | $0 new network resources, with an unresolved availability gate |
-| **New workload-profile environment using only Consumption, VNet plus classic `Microsoft.Sql` service endpoint** | Recommended economical dev design: SQL accepts the exact ACA subnet, regardless of public egress IP changes. SQL still has a public endpoint for narrowly allowed operator/runner access; Entra/contained-user grants enforce database isolation | About **$25.55** for ACA-managed Standard LB and two Standard public IPv4s; classic service endpoint has no extra charge |
-| New VNet workload-profile environment plus **Standard NAT Gateway** and one assigned static IPv4 | Supported bounded public egress for SQL and other internet destinations. Additional resources/cost are unnecessary if only SQL needs this boundary. StandardV2 NAT is not supported by ACA | Conservatively **$62.05**: $25.55 base plus $32.85 NAT plus $3.65 NAT IP; data charges additional |
-| New VNet environment plus **SQL private endpoint** | Strongest SQL network isolation if public access is disabled. Requires private DNS, private-connected schema runner and an operator private-access path. Do not confuse SQL PE with an ACA inbound private endpoint | $25.55 base plus **$7.30 SQL PE**, DNS/query/data charges and operator access; not a complete all-in quote |
+| **New workload profiles v2 environment with the Consumption profile, VNet plus classic `Microsoft.Sql` service endpoint** | Recommended economical dev design: SQL accepts the exact ACA subnet, regardless of public egress IP changes. SQL retains its public endpoint for the approved operator /32; Entra/contained-user grants enforce database isolation | About **$25.55** for ACA-managed Standard LB and two Standard public IPv4s; classic service endpoint has no extra charge |
+| New VNet workload profiles v2 environment with the Consumption profile plus **Standard NAT Gateway** and one assigned static IPv4 | Supported bounded public egress for SQL and other internet destinations. Additional resources/cost are unnecessary if only SQL needs this boundary. StandardV2 NAT is not supported by ACA | Conservatively **$62.05**: $25.55 base plus $32.85 NAT plus $3.65 NAT IP; data charges additional |
+| New VNet workload profiles v2 environment with the Consumption profile plus **SQL private endpoint** | Strongest SQL network isolation if public access is disabled. Requires private DNS, private-connected schema runner and an operator private-access path. Do not confuse SQL PE with an ACA inbound private endpoint | $25.55 base plus **$7.30 SQL PE**, DNS/query/data charges and operator access; not a complete all-in quote |
 
 The recommended endpoint is the generally available **classic** subnet service
 endpoint, not the newer billed Standard service endpoint/Network Security Perimeter
@@ -55,9 +59,11 @@ For the recommended option, propose platform-owned `vnet-hd-apps-dev` and
 (minimum /27). Exact address prefixes require an overlap check with the operator's
 networks/future peering before approval. No IP range is silently selected. The
 environment remains externally accessible for the customer-facing HTTPS API.
-It uses only the Consumption workload profile, without dedicated instances,
-planned maintenance or an ACA inbound private endpoint. Continue using
-`acrhdshareddev` and `log-hd-shared-dev`.
+Use a **workload profiles v2 environment with the Consumption profile**, not the
+legacy Consumption-only v1 environment type. No Dedicated profile, dedicated
+instances, planned maintenance or ACA inbound private endpoint is proposed.
+Continue using `acrhdshareddev` and `log-hd-shared-dev`.
+[Environment types](https://learn.microsoft.com/en-us/azure/container-apps/environment).
 
 The VNet, environment and optional NAT/IP use the server's verified platform tags:
 `hd:node=honeydrunk-infrastructure`, `hd:env=dev`, `hd:owner=honeydrunkstudios`,
@@ -74,7 +80,7 @@ environment or replay the whole platform. The managed infrastructure RG/LB/IPs
 are ACA-owned; leave their configuration to the service. Costs/tags are documented
 in [ACA VNet configuration](https://learn.microsoft.com/en-us/azure/container-apps/custom-virtual-networks).
 
-## Operator login and schema runner
+## Initial operator-run schema procedure
 
 For the recommended public-SQL/subnet option, use SSMS or another supported SQL
 client from the operator's approved workstation, targeting
@@ -86,33 +92,77 @@ egress /32. An ISP address change requires another reviewed rule update; it must
 not silently broaden access. Remove temporary operator exceptions through an
 explicit approved change after bootstrap/maintenance. No client IP has been selected.
 
-Prefer a **GitHub-hosted Linux x64 4-core larger runner with its assigned static
-IP range**, proposed label `hd-identity-sql-dev`. Existing Team eligibility avoids
-an assumed subscription upgrade. It costs **$0.012/minute**, has no idle-runner or
-static-IP feature charge, and avoids maintaining a new self-hosted VM. Budget
-200 billed minutes/month across plan/revalidation jobs = **$2.40**, or 1,000 minutes
-= $12.00; rounded minutes, package downloads and retries count. Included/free
-minutes do not cover this runner. Restrict the runner group to Identity and the
-reviewed schema workflows where supported; retain main-only dispatch and protected
-environments. Review the actual assigned finite range before any SQL rule.
-[Runner rates](https://docs.github.com/en/billing/reference/actions-runner-pricing),
-[larger-runner capabilities](https://docs.github.com/en/actions/concepts/runners/larger-runners).
+Recommend the existing workstation, subject to access approval, for initial schema review and, only
+after the execution gates below are satisfied, operator-run application of the
+reviewed schema. This requires no new VM or paid runner. This is a proposed
+procedure, not authorization to connect or execute now:
 
-Configure `IDENTITY_SQL_RUNNER` to that approved runner and `IDENTITY_SQL_SERVER`
-to the shared FQDN only after setup. Planner and publisher continue using separate
-tenant-only OIDC identities: no subscription ID/ARM role merely to obtain a SQL
-token. Runtime SQL DML, planner read/VIEW DEFINITION and publisher database-scoped
-DDL privileges are distinct; no identity receives another application's DB rights.
-No automatic hosted-runner-IP discovery/firewall changes are proposed.
+1. Pin the reviewed source revision and repository tool versions; build the Azure
+   SQL DACPAC. After access approval, authenticate interactively to the workforce
+   tenant with MFA. Use an approved contained planner user/group with CONNECT,
+   VIEW DEFINITION and required table reads, without DDL privileges.
+2. Run Identity's `scripts/Review-DevDatabase.ps1` with `Action=Plan`, the exact
+   shared FQDN/database, DACPAC, source revision and a fresh review directory.
+   Azure CLI must already hold the approved operator's workforce session; the
+   script acquires a SQL token in memory. Do not print tokens or command lines.
+   Preserve and review `deploy.sql`, `deploy-report.xml`, `manifest.json` and the
+   build/tool evidence together, including postdeployment SQL and target hashes.
+3. **Stop before execution.** Approve the all-DDL-writer maintenance freeze and
+   separately implement, test and review the supported exact-script executor.
+   Revalidate both generated SQL and report, reject drift, and protect target
+   state through completion. The current `Publish` action always refuses execution;
+   pasting SQL into SSMS or invoking SqlPackage Publish is not a workaround.
+4. Only with those gates and explicit live approval satisfied, use an approved
+   database-scoped operator publisher identity/group for the exact reviewed
+   script. Record the outcome, prove runtime DDL denial and schema readiness,
+   then end the freeze and remove temporary access through approved changes.
 
-For private SQL, GitHub's Azure private-network integration is an alternative to
-static public runner IPs, but its Azure network-settings/subnet/permissions need
-separate implementation and approval. Operator SSMS then needs a reviewed VPN or
-other private-connected workstation; neither exists in the verified inventory.
-Do not disable SQL public access and pretend the operator can still log in from
-Nov. That alternative's access-path cost must be quoted before selection.
+The logical-server administrator group is for bootstrap, not the routine planner.
+Exact operator planner/publisher principals and grants still require review;
+MFA does not imply SQL authorization. Runtime DML, planner inspection and publisher
+DDL remain separate. No automatic firewall updates or broadly allowed GitHub IP
+ranges are proposed.
 
-For either option, use the SQL FQDN rather than an IP. Decide and review server
+## Later automated schema option on GitHub Team
+
+GitHub Team supports **organization-level Azure private networking for larger
+runners**, including **East US 2**. It uses dynamic addresses inside the selected
+subnet and does not support the assigned-static-public-IP option. It can therefore
+reach public Azure SQL through a classic SQL service endpoint and exact subnet
+rule; a SQL private endpoint is not a prerequisite. This combination is a proposal
+requiring route/authentication acceptance, not an existing configured path.
+[Team eligibility and supported regions](https://docs.github.com/en/organizations/managing-organization-settings/about-azure-private-networking-for-github-hosted-runners-in-your-organization).
+
+Use a separate proposed `snet-github-runners`, never ACA's delegated `snet-aca`.
+Review a nonoverlapping CIDR sized for concurrency, delegation to
+`GitHub.Network/networkSettings`, the provider registration/network-settings
+resource, required Azure service permissions, and GitHub organization network
+configuration/runner-group access. Add a classic `Microsoft.Sql` endpoint and a
+second exact SQL subnet rule for this runner subnet. Explicitly block inbound
+runner connections and review outbound GitHub/package/SQL access. GitHub's current
+setup guidance recommends maintained domain-based egress requirements; do not copy
+the retired hard-coded IP template. Internet egress design and any added cost must
+be settled separately; the ACA subnet's managed egress is not inherited by runners.
+[Setup prerequisites and permissions](https://docs.github.com/en/organizations/managing-organization-settings/configuring-private-networking-for-github-hosted-runners-in-your-organization).
+
+A Linux x64 4-core larger runner costs **$0.012/minute**: 200 billed minutes =
+**$2.40**, 1,000 = $12.00. Included minutes do not apply. This is incremental runner
+compute only, not a quote for the complete private-network setup or initial path.
+No Enterprise upgrade or self-hosted VM is proposed.
+[Runner rates](https://docs.github.com/en/billing/reference/actions-runner-pricing).
+
+After separate approval and setup, restrict the runner group to Identity and
+reviewed schema workflows where supported, retain main-only dispatch/protected
+environments, and configure `IDENTITY_SQL_RUNNER` plus `IDENTITY_SQL_SERVER`.
+Separate planner/publisher tenant-only OIDC identities need no ARM role merely
+to obtain a SQL token; network setup permissions belong to separate administrators.
+Automation does not remove the all-DDL-writer freeze or source-level execution hold.
+
+If SQL public access is instead disabled, operator SSMS also needs an approved VPN
+or other private-connected workstation; neither exists in verified inventory.
+Quote that access path before choosing fully private SQL.
+
+For every option, use the SQL FQDN rather than an IP. Decide and review server
 connection policy: Default redirects Azure clients, requiring outbound TCP 1433
 and 11000-11999 to the regional SQL service tag; Proxy uses 1433 with a throughput/
 latency trade-off. The current module does not alter that server-wide policy.
@@ -144,9 +194,13 @@ Sources: [LB](https://azure.microsoft.com/en-us/pricing/details/load-balancer/),
 [ACA billing conditions](https://learn.microsoft.com/en-us/azure/container-apps/billing),
 [SQL rate query](https://prices.azure.com/api/retail/prices?%24filter=serviceName%20eq%20%27SQL%20Database%27%20and%20armRegionName%20eq%20%27eastus2%27%20and%20priceType%20eq%20%27Consumption%27&currencyCode=%27USD%27).
 
-Recommended-option illustration: **$25.55 network + $4.90 SQL + $19.71 one active
-API replica + $2.40 runner = $52.56/month** before usage-dependent extras. NAT's
-conservative version is **$89.06/month** on the same assumptions. Keep the managed
+Initial operator-run option: **$25.55 network + $4.90 SQL + $19.71 one active
+API replica = $50.16/month Azure subtotal**, before usage-dependent extras and
+operator time. No paid runner is included. NAT's conservative version is
+**$86.66/month** on the same operator-run assumptions. The earlier $52.56/$89.06
+totals assumed an ineligible Team/static-IP runner and are withdrawn. Later Team
+private-network automation adds billed runner minutes and any separately quoted
+network setup/egress costs; it is not included in the initial subtotal. Keep the managed
 egress IP in that budget until the actual provider resource/billing inventory
 proves any replacement; do not count an unverified saving. Recheck live quotes
 and approve a budget before creation. These are subtotals, not spending ceilings.
@@ -166,11 +220,14 @@ environment private-endpoint/maintenance features without revising the estimate.
    option is selected by approval of the shared SQL topology.
 2. Approve names/address space, exact current regional quote and spending budget;
    then review the missing network leaf/environment-reference changes before apply.
-3. Approve the exact Entra admin group, runtime/planner/publisher users/grants,
-   larger-runner creation/billing/static range, operator /32 and SQL subnet rule.
-   New environment join/read rights must target that environment, not Pulse's grant.
-4. After separately authorized setup, prove allowed application/runner/operator
-   connections and denial from an unapproved source; prove runtime DDL denial,
+3. Approve the exact Entra admin group, runtime and operator planner/publisher
+   users/grants, operator /32 and ACA SQL subnet rule. New environment join/read
+   rights must target that environment, not Pulse's grant. Later automation needs
+   separate runner-subnet/network-settings/service-permission, GitHub runner-group,
+   OIDC/grant and billing approval; Team has no assigned-static-IP runner option.
+4. After separately authorized setup, prove allowed application/operator connections
+   (and runner connections only when that option is selected) and denial from an
+   unapproved source; prove runtime DDL denial,
    mapped-schema readiness, candidate sign-in, image pull, Vault/Graph access and
    telemetry delivery. Verify across revision changes/scale and inspect the full
    firewall/rule set. No live acceptance is claimed here.

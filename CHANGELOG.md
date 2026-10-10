@@ -7,6 +7,9 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ### Changed
 
+- Correct GitHub Team runner eligibility and the initial connectivity budget;
+  propose operator-run schema review and later Team Azure private networking.
+  Specify ACA workload profiles v2 with the Consumption profile; preserve all holds.
 - Separate shared dev SQL server ownership into isolated `platform/sql` and a
   reusable server module. Identity creates only its tagged Basic database on
   the existing platform server, preserving server/admin/firewall and CD ownership.
