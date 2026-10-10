@@ -1,0 +1,7 @@
+# Copy outside the repository after approval. No credentials here.
+environment = "dev"
+location = "eastus2"
+subscription_id = "<approved-subscription-uuid>"
+tenant_id = "<workforce-tenant-uuid>"
+administrator_name = "<approved-workforce-group-name>"
+administrator_object_id = "<approved-workforce-group-object-id>"

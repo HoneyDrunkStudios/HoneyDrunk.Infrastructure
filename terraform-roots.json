@@ -1,0 +1,11 @@
+[
+  "platform",
+  "platform/app-network",
+  "platform/sql",
+  "platform/sql-access",
+  "nodes/identity",
+  "nodes/identity-data",
+  "nodes/identity-vault",
+  "nodes/identity-messaging",
+  "nodes/pulse"
+]

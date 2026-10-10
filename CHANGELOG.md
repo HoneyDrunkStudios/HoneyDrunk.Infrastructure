@@ -1,9 +1,23 @@
 # Changelog
 
-All notable changes to the HoneyDrunk.Infrastructure Bicep-content surface are
+All notable changes to the HoneyDrunk.Infrastructure IaC surface are
 recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
+
+### Terraform source migration
+
+- Replace active Bicep content/dispatcher with 18 pinned AzureRM modules and nine
+  independent development state roots, backend-disabled mocked validation and
+  reviewed adoption/state guidance. No live operation or state adoption enabled.
+- Preserve Pulse CD ownership, existing grants, Identity Linux B1/stopped bootstrap,
+  dedicated VNet/Microsoft.Sql endpoint, shared SQL server/separate Basic database,
+  and all SQL executor/access/deployment holds from unmerged reference PRs.
+- Retire legacy provision/maintenance toggles and staging/prod compositions;
+  explicit source/approval migration is required before operational use.
+
+The following Bicep entries are historical and describe superseded source behavior.
+
 
 ### Changed
 

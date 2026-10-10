@@ -427,3 +427,21 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Terraform private state, plans, config and provider caches
+**/.terraform/
+**/.terraform.lock.hcl
+!/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.plan
+*.tfvars
+*.tfvars.json
+*.tfbackend
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json

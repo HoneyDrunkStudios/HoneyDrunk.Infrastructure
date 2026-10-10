@@ -1,78 +1,64 @@
 # HoneyDrunk.Infrastructure
 
-Infrastructure-as-Code for the HoneyDrunk Grid. **All** Bicep content for every
-Azure resource the Grid provisions lives here, per [ADR-0077](https://github.com/HoneyDrunkStudios/HoneyDrunk.Studio/blob/main/adrs/ADR-0077-infrastructure-as-code-bicep.md)
-(amended 2026-06-02 to consolidate Bicep content into this single repo and drop
-the cross-repo module registry).
+Terraform source for the HoneyDrunk Grid's Azure resources. Infrastructure owns
+composition; [HoneyDrunk.Actions](https://github.com/HoneyDrunkStudios/HoneyDrunk.Actions)
+owns reusable validation and future deployment orchestration. The founder's
+October 10 Terraform request replaces the Bicep tool choice for this source
+migration. Studio's ADR-0077/invariants amendment must be coordinated before merge.
 
-The **pipeline** does not live here. The reusable deploy and lint workflows stay
-in [`HoneyDrunk.Actions`](https://github.com/HoneyDrunkStudios/HoneyDrunk.Actions)
-per [ADR-0012](https://github.com/HoneyDrunkStudios/HoneyDrunk.Studio/blob/main/adrs/ADR-0012-grid-cicd-control-plane.md)
-(Actions is the CI/CD control plane); this repo *consumes* them.
+**Source migration only. No Azure deployment, state adoption or backend has been
+enabled.** The former Bicep dispatcher is removed so a merge does not leave two
+active infrastructure writers. Git history retains the old implementation.
 
-## Layout
+| Root | Responsibility |
+| --- | --- |
+| `platform` | Adopt existing shared logs, Container Apps environment, ACR, App Configuration and Service Bus |
+| `platform/app-network` | Proposed dedicated App Service VNet/subnet; no default CIDRs |
+| `platform/sql` | Proposed shared Entra-only logical SQL server; no passwords/firewall bypass |
+| `platform/sql-access` | Separately approved Microsoft.Sql endpoint subnet rule |
+| `nodes/identity` | Proposed dedicated Linux B1 plan and stopped placeholder app |
+| `nodes/identity-data` | Separate Identity Basic database on the shared server |
+| `nodes/identity-vault` | Proposed vault/diagnostics; no secret values or grants |
+| `nodes/identity-messaging` | Proposed lifecycle queues; activation/grants unapproved |
+| `nodes/pulse` | Existing app read plus adoption of existing role assignments; no app writes |
 
-| Directory | Owns |
-|---|---|
-| [`modules/`](./modules) | The seven per-concern reusable modules (networking, compute, identity, data, secrets, messaging, observability). The reusable building blocks. |
-| [`platform/`](./platform) | Shared / foundational resources owned by no single Node: the shared Container Apps Environment, the shared image ACR (`acrhdshared{env}`), Log Analytics, the shared Service Bus namespace, networking. Exports resource IDs that Node templates consume. |
-| [`nodes/{node}/`](./nodes) | Thin per-Node leaf templates (`main.bicep` + `parameters.{env}.bicepparam`). One per Node that provisions Azure resources. |
+`modules/{concern}/{module}` contains 18 reusable AzureRM resource modules and
+safety tests. All root composition is dev/East US 2. Staging/production need a
+separate reviewed design. Resource groups are references, never implicitly created.
+Independent state roots replace destructive provision/delete toggles.
 
-## Module references are local relative paths — there is no registry
+## Credential-free validation
 
-Because `modules/`, `platform/`, and `nodes/` all live in one repo checkout,
-modules are referenced by **local relative path**. The path is relative to the
-referencing template — for example, from a leaf template at
-`nodes/{node}/main.bicep`, a compute module two levels up is:
+Terraform **1.16.5**, AzureRM **5.9.0** and the shared committed provider lock
+(Windows/Linux checksums) are pinned. The Actions workflow checks formatting,
+initializes with `-backend=false -lockfile=readonly`, validates provider schemas
+and executes only mocked plan tests. It verifies every declared test actually ran.
+PRs retain the secret scan and add ownership-contract checks; there is no Azure
+login, live plan or state/plan artifact.
 
-```bicep
-// in nodes/{node}/main.bicep
-module containerApp '../../modules/compute/containerApp.bicep' = { ... }
+Use an isolated Actions checkout at the same SHA as `.github/workflows/pr.yml`:
+
+```powershell
+python -m pip install -r <actions-checkout>/.github/config/terraform-requirements.txt
+python <actions-checkout>/.github/scripts/terraform_validate.py .
+python -m unittest discover -s tests -v
 ```
 
-(The exact `../` depth depends on where the referencing template sits; a
-`platform/` template references `../modules/...`.)
+The helper stages copies of the root lock in each validated directory. Those
+copies, provider caches, private tfvars, backend files, state and plans are ignored.
+For individual validation, copy the shared lock first, then initialize with
+`-backend=false -lockfile=readonly`, validate and run mocked `terraform test`.
+Do not substitute a real `terraform plan` for tests.
 
-There is **no** Bicep registry, **no** `acrhdbicep`, **no** `bicep-publish.yml`,
-**no** `modules/v{N}.{N}.{N}` SemVer tags, and **no** `br:` references. The
-cross-repo module registry was dropped by the 2026-06-02 amendment — modules are
-versioned by git history and resolved from the filesystem at `bicep build` time.
+## Migration boundary
 
-## Linting
+Read [migration/adoption](docs/terraform-migration.md),
+[state/authentication](docs/terraform-state.md) and
+[Identity initialization](nodes/identity/README.md) before operational work.
+No apply/import workflow is dispatchable. SQL publisher/exact executor and the
+all-writer freeze remain unapproved. No price or source definition is spending
+permission, and no CI result is live readiness evidence.
 
-A single root [`bicepconfig.json`](./bicepconfig.json) carries the
-[ADR-0077 D3](https://github.com/HoneyDrunkStudios/HoneyDrunk.Studio/blob/main/adrs/ADR-0077-infrastructure-as-code-bicep.md)
-naming/tagging linter rules and governs all three subtrees via Bicep's
-config-file resolution. PRs are gated by the `bicep lint` reusable workflow
-(`HoneyDrunk.Actions/.github/workflows/job-bicep-lint.yml`), which fails on any
-`error`-severity finding or `.bicepparam` validation error. See
-[`.github/workflows/pr.yml`](./.github/workflows/pr.yml).
-
-## Deploying
-
-Deployment runs through the reusable
-`HoneyDrunk.Actions/.github/workflows/job-deploy-bicep.yml` workflow (OIDC auth,
-`bicep build` + `lint` + `what-if` preflight, then `az deployment ... create`).
-Infrastructure deploys on its **own cadence, decoupled from application release
-tags** — infra and application code rarely change together, and when they do,
-two separate deploys is acceptable.
-
-## Pulse application/CD ownership
-
-Normal Pulse Infrastructure deploys reference the existing Container App and
-reconcile RBAC only; application CD owns images, revisions and traffic. New-app
-bootstrap and configuration maintenance require explicit separate inputs. See
-[Pulse's lifecycle and migration procedure](nodes/pulse/README.md) before an
-Azure plan/apply. This source change does not migrate live routing.
-
-Offline contract tests compile Bicep v0.48.1, exercise deploy input validation,
-and use Azure CLI 2.91.0's real offline parameter-processing path. See the
-[installation and test commands](nodes/pulse/README.md#offline-verification). The PR
-workflow runs these in addition to the existing lint and secret-scan gates.
-
-## Secrets
-
-Bicep templates **never** contain secret values (ADR-0077 D7 / invariant 91).
-Secrets are referenced by Key Vault URI / `keyVaultSecret`; `.bicepparam` files
-carry non-secret configuration only; the OIDC deploy identity provisions
-resources, it does not read secret values.
+AzureRM covers the scope, including stopped Web Apps and Azure Monitor routing;
+no AzAPI exception is needed. Provider-read keys/settings can still enter state
+despite ID-only outputs. Never place live state or plan JSON in PR logs.
