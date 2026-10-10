@@ -26,7 +26,7 @@ No Terraform backend account was found. Notify storage is not repurposed.
 Names still require availability checks; no CIDR, SQL administrator group, grants
 or spending was approved. Test IDs and `10.240.*` ranges are synthetic fixtures.
 
-## Existing unmerged work
+## Source migration and related work
 
 - Infrastructure [#13](https://github.com/HoneyDrunkStudios/HoneyDrunk.Infrastructure/pull/13)
   at `3f185fbf993a7eef51104de4db93a42d551bf25f` supplies the B1/VNet/shared SQL
@@ -35,12 +35,15 @@ or spending was approved. Test IDs and `10.240.*` ranges are synthetic fixtures.
 - Actions [#218](https://github.com/HoneyDrunkStudios/HoneyDrunk.Actions/pull/218)
   at `377f0431f4b9f69d982565be88ed9d7c135ab6f8` retains strict formatter fixes and
   protected App Service release/rollback. It is independent of Terraform validation
-  and remains unchanged, unmerged and required by its Identity consumer.
+  and remains separate from Terraform validation. It is the runtime workflow source
+  for its Identity consumer; source merge does not enable runtime deployment.
 - Studio [#808](https://github.com/HoneyDrunkStudios/HoneyDrunk.Studio/pull/808)
-  at `78430e2539828adeb94ba33de3e23b8a4b0c9f08` holds related hosting/docket
-  updates. Coordinate its reconciliation with the Terraform ADR/invariant amendment.
-- Identity #1/#2/#3 remain unmerged application dependencies. This work changes
-  no Identity business code, Graph consent, credentials or SQL publisher.
+  merged the related hosting/docket reconciliation. The public implementation
+  and operational contracts are the runbooks in this repository; that documentation
+  merge did not provision or adopt Azure resources.
+- Identity application PR/check status is owned by its repository and merge
+  coordinator. Terraform source readiness does not establish runtime readiness,
+  Graph consent, credentials or permission for a SQL publisher.
 
 ## Source coverage and ownership changes
 
