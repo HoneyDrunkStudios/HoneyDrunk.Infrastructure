@@ -52,7 +52,7 @@ variable "serving_revision_suffix" {
   type        = string
 
   validation {
-    condition     = can(regex("^[a-z][a-z0-9-]+$", var.serving_revision_suffix)) && var.serving_revision_suffix != "latest"
+    condition     = can(regex("^[a-z0-9][a-z0-9-]*$", var.serving_revision_suffix)) && var.serving_revision_suffix != "latest"
     error_message = "Retain the verified named serving revision; never latest."
   }
 }

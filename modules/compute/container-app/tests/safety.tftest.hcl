@@ -31,6 +31,16 @@ run "reject_floating_image" {
   }
   expect_failures = [var.image]
 }
+run "retain_existing_numeric_revision" {
+  command = plan
+  variables {
+    serving_revision_suffix = "0000001"
+  }
+  assert {
+    condition     = !azurerm_container_app.this.ingress[0].traffic_weight[0].latest_revision && azurerm_container_app.this.ingress[0].traffic_weight[0].revision_suffix == "0000001"
+    error_message = "Existing Azure-generated numeric revisions must retain their serving traffic."
+  }
+}
 run "reject_latest_traffic" {
   command = plan
   variables {
