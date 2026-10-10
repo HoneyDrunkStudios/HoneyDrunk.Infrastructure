@@ -1,5 +1,5 @@
 targetScope = 'resourceGroup'
-@allowed(['dev', 'staging', 'prod'])
+@allowed(['dev'])
 param env string
 param location string = resourceGroup().location
 param tags object
@@ -24,3 +24,4 @@ module network '../../modules/networking/appServiceNetwork.bicep' = if (networkS
 }
 @description('Planned resource reference only, not existence or address availability evidence.')
 output subnetId string = resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet-hd-apps-${env}', 'snet-app-service')
+

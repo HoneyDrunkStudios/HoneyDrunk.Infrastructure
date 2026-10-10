@@ -93,3 +93,13 @@ and avoid calling this module in steady state when CD owns the app.
 [Pulse's lifecycle contract](../../nodes/pulse/README.md) demonstrates an
 existing-resource default, named bootstrap and explicit maintenance. A traffic
 parameter alone does not preserve concurrent CD updates or app-scoped settings.
+
+
+## Development App Service
+
+`appServicePlan.bicep` declares a Linux plan (B1/one instance by default).
+`appServiceContainer.bicep` declares a single-container Web App with system MI,
+HTTPS/TLS, Always On, SQL-aware warm-up/health and regional subnet integration.
+Invoke only during reviewed bootstrap/configuration maintenance. CD owns later
+image updates; default Identity IaC references the existing app without writing it.
+B1 has no slots. See [Identity](../../nodes/identity/README.md).

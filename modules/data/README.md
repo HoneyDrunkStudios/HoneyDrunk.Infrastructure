@@ -65,3 +65,11 @@ module storage '../../modules/data/storageAccount.bicep' = {
   }
 }
 ```
+
+
+## SQL subnet boundary
+
+`sqlVirtualNetworkRule.bicep` adds only the explicit subnet rule on an existing
+SQL server. It requires the service endpoint to exist; it cannot change server
+admin, database permissions or public firewall. SQL service endpoints retain
+public DNS and enforce network access; they are not Private Link.

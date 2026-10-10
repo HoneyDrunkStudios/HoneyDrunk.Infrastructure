@@ -18,3 +18,12 @@ module vnet '../../modules/networking/vnet.bicep' = { ... }
 ```
 
 No registry, no `br:` references — see the [repo README](../../README.md).
+
+
+## App Service integration
+
+`appServiceNetwork.bicep` creates a new VNet and dedicated subnet delegated to
+`Microsoft.Web/serverFarms`, with classic `Microsoft.Sql` service endpoint.
+CIDRs have no defaults and need overlap review. This complete VNet declaration
+must not overwrite independently owned subnets on later runs. No NAT, private
+endpoint or role assignment is included. See [the isolated leaf](../../platform/app-network/README.md).

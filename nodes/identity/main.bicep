@@ -1,7 +1,7 @@
 targetScope = 'resourceGroup'
 
 @description('Environment-qualified source; only dev parameters are implemented and dispatch-approved.')
-@allowed(['dev', 'staging', 'prod'])
+@allowed(['dev'])
 param env string
 
 @description('Azure region.')
@@ -176,3 +176,4 @@ output principalId string = manageApp ? app!.outputs.principalId : existingApp!.
 
 @description('Azure-returned Web App hostname; never infer a live hostname from the planned name.')
 output fqdn string = manageApp ? app!.outputs.fqdn : existingApp!.properties.defaultHostName
+

@@ -35,8 +35,8 @@ assignments or credentials are created by any of these leaves. Pulse is untouche
 
 ## Parameters and names
 
-Only `parameters.dev.bicepparam` and dev dispatch are implemented. Leaf environment
-and reusable plan sizing parameters permit a later reviewed environment file;
+Only `parameters.dev.bicepparam` and dev dispatch are implemented. The leaf is dev-only. Reusable plan sizing parameters permit a later reviewed
+implementation;
 there is no production deployment, topology, sizing or readiness claim.
 
 | Input | Default / contract |
@@ -83,3 +83,4 @@ assert ownership/default no-writes, Linux B1/MI/integration/health configuration
 reject unsafe network and app inputs, and transport overrides through the real CLI.
 Pulse's existing ownership regressions remain intact. No Azure login or deployment
 is performed. The pre-existing Key Vault diagnostic-settings API warning remains.
+

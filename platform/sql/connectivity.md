@@ -1,6 +1,6 @@
 # Identity development hosting and SQL connectivity
 
-The user selected Linux B1 App Service on 2026-10-10. This replaces the earlier
+The user selected Linux B1 App Service on October 9, 2026 (America/New_York). This replaces the earlier
 Container Apps networking proposal. Source preparation is authorized; spending,
 CIDRs, provisioning, permissions, credentials, consent, merge and deployment are not.
 
@@ -157,3 +157,4 @@ Rollback explicitly redeploys a retained image/release pair and rechecks health;
 it cannot restore SQL, settings, certificates or consent. Keep reviewed release
 artifacts and ACR images, coordinate IaC/CD, and perform live acceptance only after
 approval. No live setup, test, merge or deployment occurred in this task.
+

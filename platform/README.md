@@ -102,3 +102,10 @@ ADR-0033 environment approval gate (prod requires reviewers). The deploy runs a
 Modules are consumed by local relative path (e.g.
 `../modules/compute/containerAppEnvironment.bicep`) — no registry, no `br:`
 references. See the [repo README](../README.md).
+
+
+## Isolated development App Service network
+
+[app-network](app-network/README.md) owns only the new integration network.
+It is separate from this broad platform template so Identity work never replays
+Pulse/ACA infrastructure. Shared SQL lives in the separate [SQL leaf](sql/README.md).

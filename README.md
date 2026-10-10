@@ -16,6 +16,7 @@ per [ADR-0012](https://github.com/HoneyDrunkStudios/HoneyDrunk.Studio/blob/main/
 |---|---|
 | [`modules/`](./modules) | The seven per-concern reusable modules (networking, compute, identity, data, secrets, messaging, observability). The reusable building blocks. |
 | [`platform/`](./platform) | Shared / foundational resources owned by no single Node: the shared Container Apps Environment, the shared image ACR (`acrhdshared{env}`), Log Analytics, the shared Service Bus namespace, networking. Exports resource IDs that Node templates consume. |
+| [`platform/app-network/`](./platform/app-network/README.md) | Isolated dev App Service integration VNet/subnet; explicit approved CIDRs only. |
 | [`platform/sql/`](./platform/sql/README.md) | Isolated shared dev SQL server ownership. Separate `target=platform-sql` avoids replaying platform resources; Identity declares only its database on this server. |
 | [`nodes/{node}/`](./nodes) | Thin per-Node leaf templates (`main.bicep` + `parameters.{env}.bicepparam`). One per Node that provisions Azure resources. |
 
@@ -84,3 +85,4 @@ Bicep templates **never** contain secret values (ADR-0077 D7 / invariant 91).
 Secrets are referenced by Key Vault URI / `keyVaultSecret`; `.bicepparam` files
 carry non-secret configuration only; the OIDC deploy identity provisions
 resources, it does not read secret values.
+

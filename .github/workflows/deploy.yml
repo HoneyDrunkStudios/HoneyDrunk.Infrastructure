@@ -37,7 +37,7 @@ on:
           - staging
           - prod
       target:
-        description: 'What to deploy: platform, isolated shared SQL server, or a single Node.'
+        description: 'What to deploy: platform, isolated SQL, App Service network, or a single Node.'
         required: true
         type: choice
         options:
@@ -58,7 +58,7 @@ on:
           - plan
           - apply
       bootstrap:
-        description: 'Bootstrap pass for a BRAND-NEW system-MI Node (target=node only). Runs a public placeholder image with no registry/secret wiring so the first revision is healthy before its AcrPull/Key Vault RBAC exists, while still creating the role assignments. Use only for a new app, then initialize explicitly with manage-app and reviewed inputs. Ignored for target=platform. See nodes/<node>/README.md.'
+        description: 'Brand-new Node only: Pulse creates its public revision and roles; Identity creates a disabled placeholder Web App and dedicated plan without grants. Never bootstrap an existing app. Follow the node-specific initialization procedure.'
         required: false
         type: boolean
         default: false
@@ -83,7 +83,7 @@ on:
         type: string
 
       sql-parameters:
-        description: 'platform-sql dev only: reviewed nonsecret JSON containing serverSetup with the approved Entra administrator group and explicit firewall list. Empty performs no writes. See platform/sql/README.md.'
+        description: 'platform-sql dev only: reviewed nonsecret JSON containing serverSetup with approved Entra administrator/firewall list, or allowAppServiceSubnet to add the exact integration-subnet rule. Empty performs no writes. See platform/sql/README.md.'
         required: false
         type: string
 
@@ -160,3 +160,4 @@ jobs:
       azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
       azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
       azure-subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+

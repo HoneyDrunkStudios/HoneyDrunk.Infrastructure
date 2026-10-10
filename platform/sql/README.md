@@ -37,9 +37,9 @@ Identity's parameter file. Existing resource-group tags are not changed.
 
 After separate live approval, select `target=platform-sql`, `env=dev`, and leave
 `node`, bootstrap and app-maintenance inputs empty/false. `sql-parameters` accepts
-only `{ "serverSetup": { "administratorLogin": "<approved group name>",
+`serverSetup` as `{ "serverSetup": { "administratorLogin": "<approved group name>",
 "administratorObjectId": "<verified canonical group UUID>", "firewallRules": [] } }`.
-These are nonsecret references. No administrator is checked in or guessed.
+It also accepts `allowAppServiceSubnet: true` to add the exact App Service subnet rule after the service endpoint exists, independently of server setup. No database or app fields are accepted. These are nonsecret references. No administrator is checked in or guessed.
 
 The checked-in parameters omit `serverSetup`; this compiles to **no SQL writes**.
 The output name alone is not existence evidence. The dispatcher rejects other
@@ -72,9 +72,9 @@ No new Contributor, User Access Administrator, SQL user or grant is created here
 ## Connectivity and SQL execution holds
 
 Read [the costed connectivity proposal](connectivity.md) before approving any
-resources. The existing non-VNet ACA environment does not supply guaranteed
-static egress. Creating a SQL server is not proof the application can connect.
-The proposed new network/environment is not selected or implemented by this PR.
+resources. The selected development design uses App Service regional VNet integration
+and the exact SQL subnet rule. Source is prepared, but no network has been
+provisioned. Creating a SQL server alone is not proof the application can connect.
 
 Initial schema review is proposed from an approved workstation /32 using workforce
 Entra/MFA and inspection-only SQL access. Later automation can use GitHub Team's
@@ -92,3 +92,4 @@ The tests compile modules and dev parameters, inspect deployment scopes/write
 boundaries, assert exact tags/SKU/backups, reject unsafe input and transport a
 group name with spaces plus firewall settings through the real Azure CLI parser.
 No login, what-if, resource creation or SQL connection is performed by these tests.
+
