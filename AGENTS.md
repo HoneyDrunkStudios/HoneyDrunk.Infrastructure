@@ -11,3 +11,11 @@ Work within the selected request. Preserve unrelated changes and use a separate 
 ## Verification
 
 Use the pinned Terraform/AzureRM versions and credential-free commands in [README.md](README.md#credential-free-validation), with the Actions checkout pinned by the PR workflow. Run the shared validator (format, backend-disabled initialization, schema validation and mocked tests) and `python -m unittest discover -s tests -v`; preserve the secret scan. The existing required status name `Bicep Lint / Bicep Lint` is retained as a fail-closed aggregate of the replacement Terraform and secret checks, not a command to run Bicep. Do not substitute a live plan for mocked tests or upload state, private backend configuration or saved plans.
+
+## Code Review Rules
+
+Apply the [shared review criteria](https://github.com/HoneyDrunkStudios/HoneyDrunk.Standards/blob/main/HoneyDrunk.Standards/docs/CONVENTIONS.md#code-review) to changed behavior, using the repository boundaries above. Report actionable findings with the failing path, concrete impact and a small corrective action; disclose unavailable evidence. These rules grant no cross-repository access or merge authority.
+
+- Check each changed Terraform resource against its explicit root/module owner and the migration/state runbooks. Preserve independent ownership, existing-resource adoption and the boundary excluding Pulse app resources; source edits must not silently introduce a second writer or restore retired Bicep dispatch.
+- Trace destroy/replacement risk, identity/network/SQL access, sensitive state and runtime-owned settings. Require evidence for changed resource scope or SKU intent; flag broad grants, public secret exposure or defaults that mutate an unselected resource. Do not run live operations to settle a review.
+- Use pinned credential-free validation, mocked safety cases and ownership tests for changed behavior. Check the fail-closed aggregate still requires Terraform and secret scanning. Passing mocks are not import, no-change-plan, recovery or provisioning evidence; those need separately authorized verification.
