@@ -12,8 +12,8 @@ run "restricted_recoverable_backend" {
     error_message = "No key/anonymous/all-network/trusted-service fallback."
   }
   assert {
-    condition     = length(azurerm_storage_container.state) == 7 && alltrue([for c in azurerm_storage_container.state : c.container_access_type == "private"]) && length(azurerm_role_assignment.operator) == 7
-    error_message = "Seven private containers with independently scoped data access are required."
+    condition     = length(azurerm_storage_container.state) == 16 && alltrue([for c in azurerm_storage_container.state : c.container_access_type == "private"]) && length(azurerm_role_assignment.operator) == 16
+    error_message = "Sixteen private containers with independently scoped data access are required."
   }
   assert {
     condition     = azurerm_storage_account.state.blob_properties[0].versioning_enabled && azurerm_storage_account.state.blob_properties[0].delete_retention_policy[0].days == 30 && azurerm_storage_account.state.blob_properties[0].container_delete_retention_policy[0].days == 30

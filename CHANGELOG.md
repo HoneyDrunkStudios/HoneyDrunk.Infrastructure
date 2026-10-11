@@ -5,7 +5,14 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
-- Add a protected state bootstrap root and read-only saved-plan helper: seven private containers, Entra authentication, single-IP firewall, recovery retention and container-scoped operator access. Add an optional single-IP SQL maintenance rule, absent by default. No apply, grant or deployment was executed.
+- Adopt the existing development estate and linked workforce/customer identities with exact IDs, protected Azure state, runtime field ownership and explicit provider exceptions. Preserve app data, credentials, access and service names.
+- Extend the backend to sixteen isolated containers; verify scratch recovery and remote state migration. New Identity hosting/SQL/network deployments remain separate.
+- Add directory providers and complete mocked validation/ownership coverage; retire the duplicate Pulse access composition.
+
+
+### Initial bootstrap source (superseded by adoption above)
+
+- Initially added seven private state containers and an optional single-IP SQL maintenance rule, absent by default. The bootstrap was subsequently applied and expanded to sixteen containers; the initial local-state review helper was retired after migration.
 
 ### Terraform source migration
 

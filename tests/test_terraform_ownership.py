@@ -31,18 +31,23 @@ class TerraformOwnershipTests(unittest.TestCase):
         self.assertNotEqual(missing.returncode, 0)
 
     def test_existing_cost_and_recovery_tags_are_preserved(self):
-        for root in ['identity', 'identity-data', 'identity-vault', 'identity-messaging', 'pulse']:
+        for root in ['identity', 'identity-data', 'identity-vault', 'identity-messaging']:
             tags = config(f'nodes/{root}/main.tf')['locals'][0]['tags']
             self.assertEqual(tags['hd:dr-tier'], 'T2')
-            self.assertEqual(tags['hd:cost-center'], 'observability' if root == 'pulse' else 'identity')
-        self.assertEqual(config('platform/main.tf')['locals'][0]['tags']['hd:dr-tier'], 'T1')
+            self.assertEqual(tags['hd:cost-center'], 'identity')
+        platform = config('platform/main.tf')['resource']
+        workspace = next(r['azurerm_log_analytics_workspace'] for r in platform if 'azurerm_log_analytics_workspace' in r)
+        self.assertEqual(workspace['log_hd_shared_dev']['tags']['hd:dr-tier'], 'T1')
 
-    def test_pulse_cannot_write_app_or_vault(self):
-        pulse = config('nodes/pulse/main.tf')
-        self.assertNotIn('resource', pulse)
-        sources = {module['source'] for item in pulse['module'] for module in item.values()}
-        self.assertEqual(sources, {'../../modules/identity/role-assignment'})
-        self.assertEqual(set(pulse['data'][0]), {'azurerm_container_app'})
+    def test_pulse_adoption_preserves_release_owned_fields(self):
+        pulse = config('nodes/pulse-runtime/main.tf')['resource']
+        app = next(r['azurerm_container_app'] for r in pulse if 'azurerm_container_app' in r)['ca_hd_pulse_dev']
+        self.assertEqual(set(app['lifecycle'][0]['ignore_changes']), {
+            '${secret}', '${template[0].container[0].image}', '${template[0].container[0].env}',
+            '${template[0].revision_suffix}', '${ingress[0].traffic_weight}', '${registry[0].identity}',
+        })
+        self.assertTrue(app['lifecycle'][0]['prevent_destroy'])
+        self.assertFalse((ROOT / 'nodes/pulse').exists(), 'Legacy grant root would create a second owner')
 
     def test_identity_data_cannot_write_sql_server_admin_or_network(self):
         data = config('nodes/identity-data/main.tf')
@@ -74,17 +79,45 @@ class TerraformOwnershipTests(unittest.TestCase):
 
     def test_roots_have_no_destroy_switch_or_deployment_trigger(self):
         roots = json.loads((ROOT / 'terraform-roots.json').read_text())
-        self.assertEqual(len(roots), 10)
+        self.assertEqual(len(roots), 19)
         for root in roots:
             data = config(f'{root}/main.tf')
             for module in data.get('module', []):
                 for body in module.values():
                     self.assertNotIn('count', body)
             versions = config(f'{root}/versions.tf')
-            self.assertEqual(versions['provider'][0]['azurerm']['resource_provider_registrations'], 'none')
+            for entry in versions['provider']:
+                if 'azurerm' in entry:
+                    self.assertEqual(entry['azurerm']['resource_provider_registrations'], 'none')
+                if 'azapi' in entry:
+                    self.assertTrue(entry['azapi']['skip_provider_registration'])
             self.assertTrue(any('backend' in item for item in versions['terraform']))
         self.assertFalse((ROOT / '.github/workflows/deploy.yml').exists())
         self.assertEqual(list(ROOT.rglob('*.bicep')), [])
+
+    def test_adoption_has_one_protected_owner_per_exact_import_id(self):
+        manifest = json.loads((ROOT / 'adoption-manifest.json').read_text())
+        identities = [item['id'].lower() for item in manifest]
+        self.assertEqual(len(identities), len(set(identities)))
+        addresses = [(item['root'], item['address']) for item in manifest]
+        self.assertEqual(len(addresses), len(set(addresses)))
+        for root in {item['root'] for item in manifest}:
+            declared = {}
+            for item in config(f'{root}/main.tf')['resource']:
+                for typ, resources in item.items():
+                    for name, body in resources.items():
+                        declared[f'{typ}.{name}'] = body
+                        self.assertTrue(body['lifecycle'][0]['prevent_destroy'])
+                        self.assertNotEqual(body['lifecycle'][0].get('ignore_changes'), '${all}')
+            expected = {item['address'] for item in manifest if item['root'] == root}
+            self.assertEqual(set(declared), expected)
+
+    def test_notify_secrets_stay_out_of_source(self):
+        resources = config('nodes/notify/main.tf')['resource']
+        app = next(r['azurerm_function_app_flex_consumption'] for r in resources if 'azurerm_function_app_flex_consumption' in r)['func_hd_notify_dev']
+        self.assertEqual(app['app_settings'], {})
+        self.assertEqual(app['storage_access_key'], '${azurerm_storage_account.sthdnotifydev.primary_access_key}')
+        self.assertIn('${app_settings}', app['lifecycle'][0]['ignore_changes'])
 
     def test_composition_preserves_shared_ownership_and_no_identity_grants(self):
         for root in ['identity', 'identity-data', 'identity-vault', 'identity-messaging']:
