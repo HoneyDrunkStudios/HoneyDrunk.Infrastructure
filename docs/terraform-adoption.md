@@ -23,6 +23,12 @@ provider's syntax; some differ from ARM IDs.
 | directory/customer | customer-directory-dev | dev/customer-directory.tfstate |
 | directory/customer-applications | customer-directory-dev | dev/customer-applications.tfstate |
 | directory/customer-flow | customer-directory-dev | dev/customer-flow.tfstate |
+| platform/app-network | app-network-dev | dev/app-network.tfstate |
+| platform/sql | sql-dev | dev/sql.tfstate |
+| platform/sql-access | sql-access-dev | dev/sql-access.tfstate |
+| nodes/identity | identity-dev | dev/identity.tfstate |
+| nodes/identity-data | identity-data-dev | dev/identity-data.tfstate |
+| nodes/identity-vault | identity-vault-dev | dev/identity-vault.tfstate |
 | nodes/identity-messaging (pending backend) | identity-messaging-dev | dev/identity-messaging.tfstate |
 
 The messaging container and its operator grant are source-only additions, not
