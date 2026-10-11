@@ -30,13 +30,15 @@ provider's syntax; some differ from ARM IDs.
 | nodes/identity (deployed) | identity-dev | dev/identity.tfstate |
 | nodes/identity-data (deployed) | identity-data-dev | dev/identity-data.tfstate |
 | nodes/identity-vault (deployed) | identity-vault-dev | dev/identity-vault.tfstate |
+| nodes/identity-messaging (pending backend) | identity-messaging-dev | dev/identity-messaging.tfstate |
 
 The original manifest is the preserved import inventory, not a complete list of
 subsequently created resources. The six deployed roots above own their configured
 resources, provider registrations and scoped grants. Customer-applications also
 owns `azuread_application_certificate.identity_runtime_20261011`.
-`nodes/identity-messaging` has no deployed resources/state; its reserved backend
-is not a deployment authorization.
+`nodes/identity-messaging` has no deployed resources/state; its backend container and operator grant are defined
+but pending separate bootstrap plan/apply approval. Source merge is not a
+deployment authorization.
 
 All deployed roots use the protected `sthdtfstatedev` account. Customer roots share the same
 operator access boundary but have separate keys, locks and provider tenant
@@ -49,6 +51,13 @@ existing grants are owned once, by `platform/access`. No other state was moved o
 overwritten. Resource groups are independent of application lifetime. System
 identities remain attached to their apps; no replacement service principal is
 created. Existing grant UUIDs, scopes, custom role and founder Owner access remain.
+
+Adopted vault providers disable automatic purge and automatic recovery. Platform
+App Configuration does the same, and Log Analytics disables permanent deletion.
+These provider safeguards remain effective if a resource block is later removed,
+when its prevent_destroy lifecycle no longer applies. Recovery/purge operations
+require their own explicit review; the developer App Configuration SKU itself
+has no soft-delete retention. No provider feature grants deletion authority.
 
 ## Runtime and provider exceptions
 

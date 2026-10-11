@@ -7,8 +7,10 @@ shared-key/anonymous access, versioning, 30-day blob/container soft delete and
 public endpoint denies all networks except the approved operator IPv4; no trusted
 service bypass or all-networks fallback is enabled.
 
-Sixteen private containers and sixteen operator grants are owned by
-`bootstrap/state`. Each grant is container-scoped. See the
+The deployed bootstrap owns sixteen private containers and sixteen container-scoped
+operator grants. The reviewed source adds a seventeenth container/grant for
+`identity-messaging`; that addition is pending a separately approved bootstrap
+plan/apply and must precede messaging backend initialization. See the
 [exact root/container/key map](terraform-adoption.md#state-and-source-boundaries).
 The bootstrap root now uses its existing Azure backend, not local state.
 

@@ -5,6 +5,9 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+- Preserve recovery after a resource block is removed: disable vault/App Configuration automatic purge and recovery, and Log Analytics permanent deletion.
+- Restore the five-key platform resource-ID output and define the missing isolated messaging backend/container grant. The seventeenth container is pending separate bootstrap approval and apply; the sixteen deployed containers are preserved.
+
 - Provision the approved Identity development app and SQL database in Central US while preserving the existing East US 2 estate. Delegate runtime activation/configuration to the Identity release process.
 - Manage scoped app egress and optional single-IP workstation SQL rules, workforce SQL administration, provider registration and Identity registry/vault grants.
 - Preserve the customer application's existing certificate while adopting the new public runtime key; keep private certificate material outside Terraform.

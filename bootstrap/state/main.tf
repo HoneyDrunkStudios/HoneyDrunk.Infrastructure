@@ -2,7 +2,7 @@ locals {
   containers = toset([
     "tfstate-bootstrap-dev", "tfstate-app-network-dev", "tfstate-sql-dev",
     "tfstate-sql-access-dev", "tfstate-identity-dev", "tfstate-identity-data-dev",
-    "tfstate-identity-vault-dev",
+    "tfstate-identity-vault-dev", "tfstate-identity-messaging-dev",
     "tfstate-resource-groups-dev", "tfstate-platform-dev", "tfstate-access-dev",
     "tfstate-pulse-dev", "tfstate-notify-dev", "tfstate-automation-dev",
     "tfstate-monitoring-dev", "tfstate-deployment-access-dev", "tfstate-customer-directory-dev",

@@ -11,9 +11,9 @@ permissions:
 jobs:
   terraform:
     name: Terraform
-    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-terraform-validate.yml@ab92dd4c5cf9e9796d142a544a39376fae6889d3
+    uses: HoneyDrunkStudios/HoneyDrunk.Actions/.github/workflows/job-terraform-validate.yml@5e7c8e7309f071950759d49b07d87bb01f6d4666
     with:
-      actions-ref: ab92dd4c5cf9e9796d142a544a39376fae6889d3
+      actions-ref: 5e7c8e7309f071950759d49b07d87bb01f6d4666
 
   secret-scan:
     name: Secret Scan
