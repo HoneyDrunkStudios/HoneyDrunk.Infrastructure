@@ -1,5 +1,5 @@
 [
-  "platform",
+  "bootstrap/state",
   "platform/app-network",
   "platform/sql",
   "platform/sql-access",
@@ -7,5 +7,15 @@
   "nodes/identity-data",
   "nodes/identity-vault",
   "nodes/identity-messaging",
-  "nodes/pulse"
+  "directory/customer",
+  "directory/customer-applications",
+  "directory/customer-flow",
+  "directory/deployment-access",
+  "nodes/automation",
+  "nodes/notify",
+  "nodes/pulse-runtime",
+  "platform",
+  "platform/access",
+  "platform/monitoring",
+  "platform/resource-groups"
 ]

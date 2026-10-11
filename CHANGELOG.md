@@ -5,6 +5,18 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+- Preserve recovery after a resource block is removed: disable vault/App Configuration automatic purge and recovery, and Log Analytics permanent deletion.
+
+- Adopt the existing development estate and linked workforce/customer identities with exact IDs, protected Azure state, runtime field ownership and explicit provider exceptions. Preserve app data, credentials, access and service names.
+- Extend the backend to sixteen isolated containers; verify scratch recovery and remote state migration. New Identity hosting/SQL/network deployments remain separate.
+- Add directory providers and complete mocked validation/ownership coverage; retire the duplicate Pulse access composition.
+- Restore the five-key platform resource-ID output and define the missing isolated messaging backend/container grant. The seventeenth container is pending separate bootstrap approval and apply; the sixteen deployed containers are preserved.
+
+
+### Initial bootstrap source (superseded by adoption above)
+
+- Initially added seven private state containers and an optional single-IP SQL maintenance rule, absent by default. The bootstrap was subsequently applied and expanded to sixteen containers; the initial local-state review helper was retired after migration.
+
 ### Terraform source migration
 
 - Replace active Bicep content/dispatcher with 18 pinned AzureRM modules and nine

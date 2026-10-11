@@ -1,84 +1,47 @@
-# State and authentication design
+# State and authentication
 
-No backend resources/access have been created. Empty `backend "azurerm" {}`
-blocks require operator configuration; CI disables backend initialization.
-Provider installation is not evidence of adopted state.
+The independent development backend is deployed in `rg-hd-tfstate-dev` using
+`sthdtfstatedev`: Entra authentication, TLS 1.2+, private containers, disabled
+shared-key/anonymous access, versioning, 30-day blob/container soft delete and
+90-day previous-version retention. A CanNotDelete lock protects the group. The
+public endpoint denies all networks except the approved operator IPv4; no trusted
+service bypass or all-networks fallback is enabled.
 
-## Bootstrap proposal
+The deployed bootstrap owns sixteen private containers and sixteen container-scoped
+operator grants. The reviewed source adds a seventeenth container/grant for
+`identity-messaging`; that addition is pending a separately approved bootstrap
+plan/apply and must precede messaging backend initialization. See the
+[exact root/container/key map](terraform-adoption.md#state-and-source-boundaries).
+The bootstrap root now uses its existing Azure backend, not local state.
 
-Approve a dedicated state resource group, globally unique StorageV2 account,
-region/replication and cost. Its lifecycle must be independent of application
-states so they cannot destroy their own backend. Do not repurpose Notify storage.
-
-Require Azure Blob encryption, TLS 1.2+, HTTPS only, private containers, disabled
-shared-key/anonymous access, versioning, blob/container soft delete and approved
-retention/recovery. Prefer an approved private endpoint and runner network; these
-have access/cost implications and are not silently provisioned. A restricted public
-endpoint instead needs approved exact operator/runner paths. Never allow all public
-networks or assume GitHub-hosted runners reach a private account. No key/SAS fallback.
-
-Bootstrap in a separately approved operator session or dedicated bootstrap root
-with protected temporary local state. Record/adopt backend resources into separate
-state, then handle local sensitive copies under the retention policy. Confirm Blob
-data-plane access and restore capability before adopting application resources.
-These are design steps, not an automatic provisioning script.
-
-Use Entra data-plane auth (`use_azuread_auth = true`) and approved GitHub OIDC
-(`use_oidc = true`) for future CI. Preserve client/tenant/subscription IDs as
-non-secret environment configuration. Restrict federation to the exact repo,
-protected Environment and audience. No client secret/account key and no blanket
-subscription Contributor/Owner. Local operators use approved Entra sessions with
-explicit tenant/subscription; never copy tokens into backend configuration.
-
-State permission is distinct from resource permission. Scope the approved
-identity's Blob access (normally Storage Blob Data Contributor for leases/writes)
-to the selected container, plus only required Azure management scopes. A state
-reader sees the entire snapshot. Use separate containers/accounts where RBAC
-isolation is needed; blob key names are not an access boundary. Federation, RBAC,
-network changes and sensitive-inventory entries need separate approval.
-
-## Per-root configuration
-
-Use unique keys: `dev/platform.tfstate`, `dev/platform-app-network.tfstate`,
-`dev/platform-sql.tfstate`, `dev/platform-sql-access.tfstate`,
-`dev/identity.tfstate`, `dev/identity-data.tfstate`, `dev/identity-vault.tfstate`,
-`dev/identity-messaging.tfstate`, `dev/pulse-access.tfstate`. Use explicit roots
-and keys rather than workspaces that silently switch environments.
-
-Non-executable example (not verified names):
+Private backend configuration selects the actual account, container and key:
 
 ```hcl
-storage_account_name = "<approved-state-account>"
-container_name       = "<approved-private-container>"
+resource_group_name  = "rg-hd-tfstate-dev"
+storage_account_name = "sthdtfstatedev"
+container_name       = "tfstate-platform-dev"
 key                  = "dev/platform.tfstate"
+subscription_id      = "82073da5-bd6d-4874-947e-73b791054cbc"
+tenant_id            = "f5654adb-2a4c-4317-9217-09ef32ccdd3a"
 use_azuread_auth      = true
-use_oidc             = true
+use_cli              = true
 ```
 
-Configure `ARM_CLIENT_ID`, `ARM_TENANT_ID` and `ARM_SUBSCRIPTION_ID` through the
-approved environment. Backend/provider authentication are independent. AzureRM
-auto-registration is disabled (`resource_provider_registrations = "none"`);
-missing registrations are an approval step, not permission to broaden access.
+Use the exact key for the selected root. Never repurpose a container or silently
+switch state through workspaces. The customer Graph provider uses the customer
+tenant independently of the workforce-authenticated Azure backend. Future CI/OIDC
+access remains a separate reviewed setup; a source merge grants no data access.
 
-## Locking, confidentiality and recovery
+AzureRM provider registration is disabled and AzAPI skips registration. An IP
+change requires a reviewed bootstrap firewall update, not backend recreation.
+No key/SAS fallback, subscription Blob grant, forced copy or unlock bypass exists.
 
-The [AzureRM backend](https://developer.hashicorp.com/terraform/language/backend/azurerm)
-uses Blob leases for native locking. Keep locking enabled and use a bounded lock
-timeout. Future CI also serializes by state key and must not cancel active applies.
-Identify/stop a failed writer before any separately approved stale-lock recovery.
+State, backups, saved plans, plan JSON and backend metadata are sensitive. Do not
+put them in Git, chat, PR logs or shared artifacts. Disable Terraform debug logging.
+Use a bounded lock timeout, exact saved-plan apply and post-apply no-change check.
+Provider-read credentials may enter encrypted state even with ID-only outputs.
 
-Treat state/backups, saved plans/JSON, crash logs and backend metadata as sensitive.
-AzureRM may read computed keys or app settings into state despite no secret
-inputs/outputs. `sensitive` hides display, not stored values. No live plan/state
-may reach PR comments, unrestricted artifacts/caches/logs or transcripts. Avoid
-`TF_LOG` in authenticated sessions. PR tests are synthetic and mocked only.
-
-After partial apply, stop writers and inspect Azure/state privately. Preserve the
-latest state version/serial and failure evidence. Never overwrite a newer writer
-with an old blob; state restoration does not roll back Azure. Review recovery or
-re-import and a fresh confidential plan. Rehearse restore in an isolated approved
-scope before production adoption. Version history is not automatic rollback.
-
-See [sensitive state](https://developer.hashicorp.com/terraform/language/state/sensitive-data),
-[provider mocking](https://developer.hashicorp.com/terraform/language/tests/mocking)
-and [Azure Storage state guidance](https://learn.microsoft.com/azure/developer/terraform/store-state-in-azure-storage).
+See [recovery and adoption acceptance](terraform-adoption.md#planning-apply-and-recovery).
+Initial bootstrap history and retained local recovery copies are private operational
+evidence; they must never overwrite a newer remote state. The old create-only local
+bootstrap helper is retired after successful migration.

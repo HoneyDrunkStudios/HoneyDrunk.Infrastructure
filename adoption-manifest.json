@@ -1,0 +1,458 @@
+[
+  {
+    "root": "platform",
+    "address": "azurerm_log_analytics_workspace.log_hd_shared_dev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-platform-dev/providers/Microsoft.OperationalInsights/workspaces/log-hd-shared-dev",
+    "name": "log-hd-shared-dev"
+  },
+  {
+    "root": "platform",
+    "address": "azurerm_app_configuration.appcs_hd_shared_dev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-platform-dev/providers/Microsoft.AppConfiguration/configurationStores/appcs-hd-shared-dev",
+    "name": "appcs-hd-shared-dev"
+  },
+  {
+    "root": "platform",
+    "address": "azurerm_container_registry.acrhdshareddev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-platform-dev/providers/Microsoft.ContainerRegistry/registries/acrhdshareddev",
+    "name": "acrhdshareddev"
+  },
+  {
+    "root": "nodes/notify",
+    "address": "azurerm_storage_account.sthdnotifydev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev/providers/Microsoft.Storage/storageAccounts/sthdnotifydev",
+    "name": "sthdnotifydev"
+  },
+  {
+    "root": "nodes/notify",
+    "address": "azurerm_key_vault.kv_hd_notify_dev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev/providers/Microsoft.KeyVault/vaults/kv-hd-notify-dev",
+    "name": "kv-hd-notify-dev"
+  },
+  {
+    "root": "nodes/notify",
+    "address": "azurerm_application_insights.appi_hd_notify_dev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev/providers/Microsoft.Insights/components/appi-hd-notify-dev",
+    "name": "appi-hd-notify-dev"
+  },
+  {
+    "root": "nodes/notify",
+    "address": "azurerm_service_plan.asp_rghdnotifydev_898e",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev/providers/Microsoft.Web/serverFarms/ASP-rghdnotifydev-898e",
+    "name": "ASP-rghdnotifydev-898e"
+  },
+  {
+    "root": "nodes/notify",
+    "address": "azurerm_function_app_flex_consumption.func_hd_notify_dev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev/providers/Microsoft.Web/sites/func-hd-notify-dev",
+    "name": "func-hd-notify-dev"
+  },
+  {
+    "root": "platform/monitoring",
+    "address": "azurerm_monitor_action_group.application_insights_smart_detection",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev/providers/Microsoft.Insights/actionGroups/Application Insights Smart Detection",
+    "name": "Application Insights Smart Detection"
+  },
+  {
+    "root": "nodes/pulse-runtime",
+    "address": "azurerm_key_vault.kv_hd_pulse_dev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-pulse-dev/providers/Microsoft.KeyVault/vaults/kv-hd-pulse-dev",
+    "name": "kv-hd-pulse-dev"
+  },
+  {
+    "root": "nodes/pulse-runtime",
+    "address": "azurerm_container_app.ca_hd_pulse_dev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-pulse-dev/providers/Microsoft.App/containerApps/ca-hd-pulse-dev",
+    "name": "ca-hd-pulse-dev"
+  },
+  {
+    "root": "nodes/automation",
+    "address": "azurerm_key_vault.kv_hd_automation_dev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-automation-dev/providers/Microsoft.KeyVault/vaults/kv-hd-automation-dev",
+    "name": "kv-hd-automation-dev"
+  },
+  {
+    "root": "platform",
+    "address": "azurerm_container_app_environment.cae_hd_dev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-platform-dev/providers/Microsoft.App/managedEnvironments/cae-hd-dev",
+    "name": "cae-hd-dev"
+  },
+  {
+    "root": "platform",
+    "address": "azurerm_servicebus_namespace.sb_hd_shared_dev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-platform-dev/providers/Microsoft.ServiceBus/namespaces/sb-hd-shared-dev",
+    "name": "sb-hd-shared-dev"
+  },
+  {
+    "root": "directory/customer",
+    "address": "azapi_resource.honeydrunkcustomers_onmicrosoft_com",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-identity-dev/providers/Microsoft.AzureActiveDirectory/ciamDirectories/honeydrunkcustomers.onmicrosoft.com?api-version=2023-05-17-preview",
+    "name": "honeydrunkcustomers.onmicrosoft.com"
+  },
+  {
+    "root": "platform/monitoring",
+    "address": "azurerm_monitor_action_group.azureapp_auto",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/azureapp-auto-alerts-98c8b5-oleg_honeydrunkstudios_com/providers/Microsoft.Insights/actionGroups/azureapp-auto",
+    "name": "azureapp-auto"
+  },
+  {
+    "root": "platform/monitoring",
+    "address": "azurerm_monitor_activity_log_alert.service_health_issue_in__honeydrunk_dev_",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/azureapp-auto-alerts-98c8b5-oleg_honeydrunkstudios_com/providers/Microsoft.Insights/activityLogAlerts/Service Health issue in 'honeydrunk-dev'",
+    "name": "Service Health issue in 'honeydrunk-dev'"
+  },
+  {
+    "root": "platform/resource-groups",
+    "address": "azurerm_resource_group.rg_hd_platform_dev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-platform-dev",
+    "name": "rg-hd-platform-dev"
+  },
+  {
+    "root": "platform/resource-groups",
+    "address": "azurerm_resource_group.defaultresourcegroup_eus2",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/DefaultResourceGroup-EUS2",
+    "name": "DefaultResourceGroup-EUS2"
+  },
+  {
+    "root": "platform/resource-groups",
+    "address": "azurerm_resource_group.rg_hd_notify_dev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev",
+    "name": "rg-hd-notify-dev"
+  },
+  {
+    "root": "platform/resource-groups",
+    "address": "azurerm_resource_group.rg_hd_pulse_dev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-pulse-dev",
+    "name": "rg-hd-pulse-dev"
+  },
+  {
+    "root": "platform/resource-groups",
+    "address": "azurerm_resource_group.rg_hd_automation_dev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-automation-dev",
+    "name": "rg-hd-automation-dev"
+  },
+  {
+    "root": "platform/resource-groups",
+    "address": "azurerm_resource_group.rg_hd_identity_dev",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-identity-dev",
+    "name": "rg-hd-identity-dev"
+  },
+  {
+    "root": "platform/resource-groups",
+    "address": "azurerm_resource_group.azureapp_auto_alerts_98c8b5_oleg_honeydrunkstudios_com",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/azureapp-auto-alerts-98c8b5-oleg_honeydrunkstudios_com",
+    "name": "azureapp-auto-alerts-98c8b5-oleg_honeydrunkstudios_com"
+  },
+  {
+    "root": "nodes/notify",
+    "address": "azurerm_storage_container.app_package_func_hd_notify_dev_333f832",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev/providers/Microsoft.Storage/storageAccounts/sthdnotifydev/blobServices/default/containers/app-package-func-hd-notify-dev-333f832",
+    "name": "app-package-func-hd-notify-dev-333f832"
+  },
+  {
+    "root": "nodes/notify",
+    "address": "azurerm_storage_container.azure_webjobs_hosts",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev/providers/Microsoft.Storage/storageAccounts/sthdnotifydev/blobServices/default/containers/azure-webjobs-hosts",
+    "name": "azure-webjobs-hosts"
+  },
+  {
+    "root": "nodes/notify",
+    "address": "azurerm_storage_container.azure_webjobs_secrets",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev/providers/Microsoft.Storage/storageAccounts/sthdnotifydev/blobServices/default/containers/azure-webjobs-secrets",
+    "name": "azure-webjobs-secrets"
+  },
+  {
+    "root": "nodes/notify",
+    "address": "azurerm_storage_queue.notify_queue",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev/providers/Microsoft.Storage/storageAccounts/sthdnotifydev/queueServices/default/queues/notify-queue",
+    "name": "notify-queue"
+  },
+  {
+    "root": "platform",
+    "address": "azurerm_monitor_diagnostic_setting.acr_audit_to_loganalytics",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourcegroups/rg-hd-platform-dev/providers/microsoft.containerregistry/registries/acrhdshareddev|acr-audit-to-loganalytics",
+    "name": "acr-audit-to-loganalytics"
+  },
+  {
+    "root": "platform",
+    "address": "azurerm_monitor_diagnostic_setting.diag_to_law",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourcegroups/rg-hd-platform-dev/providers/microsoft.app/managedenvironments/cae-hd-dev|diag-to-law",
+    "name": "diag-to-law"
+  },
+  {
+    "root": "platform",
+    "address": "azurerm_servicebus_namespace_authorization_rule.rootmanagesharedaccesskey",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-platform-dev/providers/Microsoft.ServiceBus/namespaces/sb-hd-shared-dev/authorizationRules/RootManageSharedAccessKey",
+    "name": "RootManageSharedAccessKey"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_definition.honeydrunk_pulse_dev_environment_join",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/providers/Microsoft.Authorization/roleDefinitions/8142912a-a196-46c5-ade9-b7e96992db38|/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-platform-dev",
+    "name": "HoneyDrunk Pulse Dev Environment Join"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_8ea0ac7b_13dc_4963_a60c_9504057974c2",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/providers/Microsoft.Authorization/roleAssignments/8ea0ac7b-13dc-4963-a60c-9504057974c2",
+    "name": "Owner"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_aa364fe7_ecc7_4a18_a162_939ba9fa7c1e",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev/providers/Microsoft.KeyVault/vaults/kv-hd-notify-dev/providers/Microsoft.Authorization/roleAssignments/aa364fe7-ecc7-4a18-a162-939ba9fa7c1e",
+    "name": "Key Vault Secrets Officer"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_cc7d73dc_7946_4b0e_8500_a5e80849ea38",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev/providers/Microsoft.KeyVault/vaults/kv-hd-notify-dev/providers/Microsoft.Authorization/roleAssignments/cc7d73dc-7946-4b0e-8500-a5e80849ea38",
+    "name": "Key Vault Secrets User"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_ece6d329_0f3d_4be5_9476_8aee7e136265",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev/providers/Microsoft.Authorization/roleAssignments/ece6d329-0f3d-4be5-9476-8aee7e136265",
+    "name": "Contributor"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_b888279e_bf35_4082_8be2_f02bae1bd852",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-platform-dev/providers/Microsoft.ContainerRegistry/registries/acrhdshareddev/providers/Microsoft.Authorization/roleAssignments/b888279e-bf35-4082-8be2-f02bae1bd852",
+    "name": "AcrPull"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_cd672e65_435e_4de8_91fd_5a2e2008cbfc",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev/providers/Microsoft.KeyVault/vaults/kv-hd-notify-dev/providers/Microsoft.Authorization/roleAssignments/cd672e65-435e-4de8-91fd-5a2e2008cbfc",
+    "name": "Key Vault Secrets User"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_7ae8cf35_50f9_4086_8bc9_dfd4ccbefa0f",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-platform-dev/providers/Microsoft.ContainerRegistry/registries/acrhdshareddev/providers/Microsoft.Authorization/roleAssignments/7ae8cf35-50f9-4086-8bc9-dfd4ccbefa0f",
+    "name": "AcrPush"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_740b8702_6cc4_4374_8102_521dff83995b",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-pulse-dev/providers/Microsoft.KeyVault/vaults/kv-hd-pulse-dev/providers/Microsoft.Authorization/roleAssignments/740b8702-6cc4-4374-8102-521dff83995b",
+    "name": "Key Vault Secrets Officer"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_36df29fd_521f_4646_b8c4_980e8a55b6c5",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-pulse-dev/providers/Microsoft.Authorization/roleAssignments/36df29fd-521f-4646-b8c4-980e8a55b6c5",
+    "name": "Contributor"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_9599519b_2be7_400e_b5a4_53a1d054fe5a",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-platform-dev/providers/Microsoft.ContainerRegistry/registries/acrhdshareddev/providers/Microsoft.Authorization/roleAssignments/9599519b-2be7-400e-b5a4-53a1d054fe5a",
+    "name": "AcrPush"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_dcaaa7d5_cbd9_44f1_b924_2760523d20f9",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-platform-dev/providers/Microsoft.AppConfiguration/configurationStores/appcs-hd-shared-dev/providers/Microsoft.Authorization/roleAssignments/dcaaa7d5-cbd9-44f1-b924-2760523d20f9",
+    "name": "App Configuration Data Owner"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_30571d18_b96c_474c_8dec_7e874db2bf60",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-automation-dev/providers/Microsoft.KeyVault/vaults/kv-hd-automation-dev/providers/Microsoft.Authorization/roleAssignments/30571d18-b96c-474c-8dec-7e874db2bf60",
+    "name": "Key Vault Secrets Officer"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_82dcb37c_9340_4c09_ba0d_7df97f12b08e",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev/providers/Microsoft.KeyVault/vaults/kv-hd-notify-dev/providers/Microsoft.Authorization/roleAssignments/82dcb37c-9340-4c09-ba0d-7df97f12b08e",
+    "name": "Key Vault Secrets User"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_a12b9647_36a2_4ae3_9254_d10f7e4edd01",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-platform-dev/providers/Microsoft.AppConfiguration/configurationStores/appcs-hd-shared-dev/providers/Microsoft.Authorization/roleAssignments/a12b9647-36a2-4ae3-9254-d10f7e4edd01",
+    "name": "App Configuration Data Reader"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_fedc1872_0084_441d_89c1_674a2cc693c0",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-platform-dev/providers/Microsoft.Authorization/roleAssignments/fedc1872-0084-441d-89c1-674a2cc693c0",
+    "name": "Contributor"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_cb188003_d016_4ce0_8bf7_33dd60100521",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-platform-dev/providers/Microsoft.Authorization/roleAssignments/cb188003-d016-4ce0-8bf7-33dd60100521",
+    "name": "User Access Administrator"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_0bdf19da_8c99_457e_ae09_5d530ff5cebc",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-pulse-dev/providers/Microsoft.Authorization/roleAssignments/0bdf19da-8c99-457e-ae09-5d530ff5cebc",
+    "name": "User Access Administrator"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_976da56b_f471_43f1_ad0c_dfee02fb2428",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-pulse-dev/providers/Microsoft.Authorization/roleAssignments/976da56b-f471-43f1-ad0c-dfee02fb2428",
+    "name": "Contributor"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_c5431da6_2f5d_59cd_97c3_cd4ac34850bb",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourcegroups/rg-hd-platform-dev/providers/Microsoft.Authorization/roleAssignments/c5431da6-2f5d-59cd-97c3-cd4ac34850bb",
+    "name": "AcrPull"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_3f6a78d4_b6a3_52c0_affc_72244368b21a",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourcegroups/rg-hd-platform-dev/providers/Microsoft.Authorization/roleAssignments/3f6a78d4-b6a3-52c0-affc-72244368b21a",
+    "name": "App Configuration Data Reader"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_daa14232_e321_59ef_8c12_8c9b42e3b2f4",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourcegroups/rg-hd-pulse-dev/providers/Microsoft.Authorization/roleAssignments/daa14232-e321-59ef-8c12-8c9b42e3b2f4",
+    "name": "Key Vault Secrets User"
+  },
+  {
+    "root": "platform/access",
+    "address": "azurerm_role_assignment.existing_d1d6e17c_0d08_4597_93b8_5020371e040b",
+    "id": "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-platform-dev/providers/Microsoft.App/managedEnvironments/cae-hd-dev/providers/Microsoft.Authorization/roleAssignments/d1d6e17c-0d08-4597-93b8-5020371e040b",
+    "name": "HoneyDrunk Pulse Dev Environment Join"
+  },
+  {
+    "root": "directory/deployment-access",
+    "address": "azuread_application.sp_hd_pulse_dev",
+    "id": "/applications/5c895f72-df6c-4341-b7f3-ff7247f0db3a",
+    "name": "sp-hd-pulse-dev"
+  },
+  {
+    "root": "directory/deployment-access",
+    "address": "azuread_service_principal.sp_hd_pulse_dev",
+    "id": "/servicePrincipals/22bee2a0-549b-422c-aa9b-f842193f1c45",
+    "name": "sp-hd-pulse-dev"
+  },
+  {
+    "root": "directory/deployment-access",
+    "address": "azuread_application_federated_identity_credential.github_pulse_dev",
+    "id": "5c895f72-df6c-4341-b7f3-ff7247f0db3a/federatedIdentityCredential/ad02d549-0781-4c37-8733-8346f1f4a736",
+    "name": "github-pulse-dev"
+  },
+  {
+    "root": "directory/deployment-access",
+    "address": "azuread_application.honeydrunk_infrastructure_deploy",
+    "id": "/applications/ef7eafca-d048-47d2-bbeb-ba729f6c1b72",
+    "name": "honeydrunk-infrastructure-deploy"
+  },
+  {
+    "root": "directory/deployment-access",
+    "address": "azuread_service_principal.honeydrunk_infrastructure_deploy",
+    "id": "/servicePrincipals/9745a886-40ab-4cd4-be23-1679ffd3c37a",
+    "name": "honeydrunk-infrastructure-deploy"
+  },
+  {
+    "root": "directory/deployment-access",
+    "address": "azuread_application_federated_identity_credential.gh_infra_main",
+    "id": "ef7eafca-d048-47d2-bbeb-ba729f6c1b72/federatedIdentityCredential/239ef534-ce8e-485a-963a-c797654555ef",
+    "name": "gh-infra-main"
+  },
+  {
+    "root": "directory/deployment-access",
+    "address": "azuread_application.sp_hd_notify_dev",
+    "id": "/applications/b0b59767-e215-4c8c-8b8f-d20a687b2204",
+    "name": "sp-hd-notify-dev"
+  },
+  {
+    "root": "directory/deployment-access",
+    "address": "azuread_service_principal.sp_hd_notify_dev",
+    "id": "/servicePrincipals/9a5c16db-74ee-4cea-882e-b1c415cc020e",
+    "name": "sp-hd-notify-dev"
+  },
+  {
+    "root": "directory/deployment-access",
+    "address": "azuread_application_federated_identity_credential.github_notify_dev",
+    "id": "b0b59767-e215-4c8c-8b8f-d20a687b2204/federatedIdentityCredential/e5f31320-9909-4a26-962b-2ec0d35172b5",
+    "name": "github-notify-dev"
+  },
+  {
+    "root": "directory/customer-applications",
+    "address": "azuread_application.pocket_quests_web",
+    "id": "/applications/4f718d64-ee19-4d88-9ab1-ba59dfd425ca",
+    "name": "Pocket Quests Web - Dev"
+  },
+  {
+    "root": "directory/customer-applications",
+    "address": "azuread_application.identity_api",
+    "id": "/applications/91fae05b-d1fa-42d6-acfe-5b13c4c7856f",
+    "name": "HoneyDrunk Identity API - Dev"
+  },
+  {
+    "root": "directory/customer-applications",
+    "address": "azuread_application_certificate.identity_api",
+    "id": "91fae05b-d1fa-42d6-acfe-5b13c4c7856f/certificate/b025772c-4bca-4e51-8d06-3b10884a40ab",
+    "name": "Local development"
+  },
+  {
+    "root": "directory/customer-applications",
+    "address": "azuread_service_principal.pocket_quests_web",
+    "id": "/servicePrincipals/4177498d-ea98-4cfe-8927-ad3a6acea8c8",
+    "name": "Pocket Quests Web - Dev"
+  },
+  {
+    "root": "directory/customer-applications",
+    "address": "azuread_service_principal.identity_api",
+    "id": "/servicePrincipals/8c1a4398-19e1-46e5-a951-971154567271",
+    "name": "HoneyDrunk Identity API - Dev"
+  },
+  {
+    "root": "directory/customer-applications",
+    "address": "azuread_app_role_assignment.identity_api_0",
+    "id": "/servicePrincipals/e2d0c9b8-e8e8-4732-9190-aa49bdf68fd3/appRoleAssignedTo/mEMajOEZ5UapUZcRVFZyccW6miYEUXVOgK8rrfRxDYY",
+    "name": "Existing HoneyDrunk Identity API - Dev API role"
+  },
+  {
+    "root": "directory/customer-applications",
+    "address": "azuread_service_principal_delegated_permission_grant.existing_0",
+    "id": "/oauth2PermissionGrants/mEMajOEZ5UapUZcRVFZycbjJ0OLo6DJHkZCqSb32j9M",
+    "name": "User.Read"
+  },
+  {
+    "root": "directory/customer-applications",
+    "address": "azuread_service_principal_delegated_permission_grant.existing_1",
+    "id": "/oauth2PermissionGrants/jUl3QZjq_kyJJ606as6oyLjJ0OLo6DJHkZCqSb32j9M",
+    "name": "User.Read"
+  },
+  {
+    "root": "directory/customer-applications",
+    "address": "azuread_service_principal_delegated_permission_grant.existing_2",
+    "id": "/oauth2PermissionGrants/jUl3QZjq_kyJJ606as6oyJhDGozhGeVGqVGXEVRWcnE",
+    "name": "access_as_user"
+  },
+  {
+    "root": "directory/customer-flow",
+    "address": "msgraph_resource.sign_up_sign_in",
+    "id": "/identity/authenticationEventsFlows/3c679ecf-a488-4759-8011-c86f3cc0f921",
+    "name": "HoneyDrunkSignUpSignIn"
+  },
+  {
+    "root": "directory/customer-flow",
+    "address": "msgraph_resource.email_otp",
+    "id": "identity/authenticationEventsFlows/3c679ecf-a488-4759-8011-c86f3cc0f921/microsoft.graph.externalUsersSelfServiceSignUpEventsFlow/onAuthenticationMethodLoadStart/microsoft.graph.onAuthenticationMethodLoadStartExternalUsersSelfServiceSignUp/identityProviders/EmailOtpSignup-OAUTH/$ref",
+    "name": "email_otp"
+  },
+  {
+    "root": "directory/customer-flow",
+    "address": "msgraph_resource.email_attribute",
+    "id": "identity/authenticationEventsFlows/3c679ecf-a488-4759-8011-c86f3cc0f921/microsoft.graph.externalUsersSelfServiceSignUpEventsFlow/onAttributeCollection/microsoft.graph.onAttributeCollectionExternalUsersSelfServiceSignUp/attributes/email/$ref",
+    "name": "email_attribute"
+  },
+  {
+    "root": "directory/customer-flow",
+    "address": "msgraph_resource.display_name_attribute",
+    "id": "identity/authenticationEventsFlows/3c679ecf-a488-4759-8011-c86f3cc0f921/microsoft.graph.externalUsersSelfServiceSignUpEventsFlow/onAttributeCollection/microsoft.graph.onAttributeCollectionExternalUsersSelfServiceSignUp/attributes/displayName/$ref",
+    "name": "display_name_attribute"
+  }
+]
