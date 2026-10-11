@@ -2,8 +2,9 @@
 
 The founder authorized existing-resource adoption on October 11, 2026. This
 supersedes the earlier exclusions of Pulse, Notify, automation and directory
-resources. It does not authorize the proposed Identity hosting, SQL, network or
-application release. The exact resource-to-state map is
+resources. Adoption itself did not authorize new deployment. The founder subsequently
+authorized and completed the Identity foundation/runtime release described in
+[the migration record](terraform-migration.md). The original imported-estate manifest is
 [adoption-manifest.json](../adoption-manifest.json). Import IDs use each pinned
 provider's syntax; some differ from ARM IDs.
 
@@ -23,19 +24,23 @@ provider's syntax; some differ from ARM IDs.
 | directory/customer | customer-directory-dev | dev/customer-directory.tfstate |
 | directory/customer-applications | customer-directory-dev | dev/customer-applications.tfstate |
 | directory/customer-flow | customer-directory-dev | dev/customer-flow.tfstate |
-| platform/app-network | app-network-dev | dev/app-network.tfstate |
-| platform/sql | sql-dev | dev/sql.tfstate |
-| platform/sql-access | sql-access-dev | dev/sql-access.tfstate |
-| nodes/identity | identity-dev | dev/identity.tfstate |
-| nodes/identity-data | identity-data-dev | dev/identity-data.tfstate |
-| nodes/identity-vault | identity-vault-dev | dev/identity-vault.tfstate |
+| platform/app-network (deployed) | app-network-dev | dev/app-network.tfstate |
+| platform/sql (deployed) | sql-dev | dev/sql.tfstate |
+| platform/sql-access (deployed) | sql-access-dev | dev/sql-access.tfstate |
+| nodes/identity (deployed) | identity-dev | dev/identity.tfstate |
+| nodes/identity-data (deployed) | identity-data-dev | dev/identity-data.tfstate |
+| nodes/identity-vault (deployed) | identity-vault-dev | dev/identity-vault.tfstate |
 | nodes/identity-messaging (pending backend) | identity-messaging-dev | dev/identity-messaging.tfstate |
 
-The messaging container and its operator grant are source-only additions, not
-deployed adoption. Review/apply the bootstrap addition separately before using
-that backend. Existing containers, state keys and grants are preserved.
+The original manifest is the preserved import inventory, not a complete list of
+subsequently created resources. The six deployed roots above own their configured
+resources, provider registrations and scoped grants. Customer-applications also
+owns `azuread_application_certificate.identity_runtime_20261011`.
+`nodes/identity-messaging` has no deployed resources/state; its backend container and operator grant are defined
+but pending separate bootstrap plan/apply approval. Source merge is not a
+deployment authorization.
 
-All use the protected `sthdtfstatedev` account. Customer roots share the same
+All deployed roots use the protected `sthdtfstatedev` account. Customer roots share the same
 operator access boundary but have separate keys, locks and provider tenant
 configuration. ARM directory ownership uses the workforce tenant; customer
 applications and flow use the customer tenant. Names, subscriptions, tenants and
@@ -56,6 +61,11 @@ has no soft-delete retention. No provider feature grants deletion authority.
 
 ## Runtime and provider exceptions
 
+- Identity releases own image, app settings, enabled state and health path.
+  Terraform owns its Central US app/plan, SQL infrastructure, per-IP firewall,
+  workforce administration and scoped registry/vault grants. SQL schema and
+  contained-user permissions, private certificates and secret values are separate
+  runtime operations. The East US 2 app network remains preserved and unconnected.
 - Pulse releases own image, environment, Key Vault references, revision suffix
   and traffic weights. Terraform owns app infrastructure and its vault. Registry
   identity casing is ignored because Azure returns `system` while AzureRM requires
@@ -75,8 +85,8 @@ has no soft-delete retention. No provider feature grants deletion authority.
   validation is disabled while its imported validation metadata is ignored, so
   adoption does not PUT the tenant merely to update a provider flag. The directory
   body, tenant link, SKU and location remain managed. Never replace the tenant.
-- AzureAD cannot reconstruct imported certificate payload/encoding. The existing
-  public certificate is retained, with those two write-only fields ignored;
+- AzureAD cannot reconstruct imported certificate payload/encoding. Both adopted
+  public certificates are retained, with those two write-only fields ignored;
   key ID, validity and application association remain managed. No private key or
   replacement credential is in source. Rotation requires an explicit new plan.
 - Microsoft Graph imports a flow ID without its body. The founder separately

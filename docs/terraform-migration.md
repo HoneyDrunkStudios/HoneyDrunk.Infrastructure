@@ -10,22 +10,28 @@ resources are imported with exact IDs; their names, tags, SKU, access, credentia
 and data are preserved. The former Pulse grant-only root has one successor owner
 for its grants: `platform/access`.
 
-## Proposed deployments remain separate
+## Separately approved deployment completed October 11
 
-The unexecuted roots are `platform/app-network`, `platform/sql`,
-`platform/sql-access`, `nodes/identity`, `nodes/identity-data`,
-`nodes/identity-vault` and `nodes/identity-messaging`. Their design retains a
-dedicated App Service VNet/subnet, shared Entra-only SQL server, separate Basic
-Identity database, dedicated Linux B1 plan/stopped app, Identity vault and future
-lifecycle queues. No CIDR, SQL administrator, publishing executor, image release,
-queue activation or new service spend follows merely from adoption or merge.
+`platform/app-network`, `platform/sql`, `platform/sql-access`, `nodes/identity`,
+`nodes/identity-data` and `nodes/identity-vault` now have live resources and Azure
+state. Initialize their exact existing backends from the
+[state map](terraform-adoption.md#state-and-source-boundaries); never treat them as
+empty first-creation targets. The customer-applications root also owns the new
+public Graph certificate while preserving the previous certificate.
 
-Before deployment, review current prices, names, network choices, administration,
-state containers/access, exact saved plans and recovery. Resource creation does
-not authorize DACPAC publishing, contained SQL users, Graph permission changes,
-consumer activation or a runtime release. B1 has no slots; retained-image rollback
-requires a tested maintenance procedure. Coordinate all writers before real app
-configuration or database schema changes. No automatic apply is enabled here.
+Identity's B1 app/plan and Entra-only SQL server/Basic database are in Central US.
+The app uses scoped public-egress SQL rules without VNet integration. The deployed
+East US 2 app network is preserved along with the registry, vault and other
+existing resources. Workstation access is an explicitly selected single-IP rule.
+The app is serving after separately approved schema, permission, credential and
+runtime setup; releases own image/settings/enabled state/health path.
+
+Only `nodes/identity-messaging` remains an unexecuted proposal. Lifecycle queues
+and consumer activation, automated release identities, native product acceptance
+and Azure backup restoration remain outstanding. Source publication grants no
+new deployment authority. B1 has no slots. Coordinate writers and review exact
+plans before subsequent infrastructure, runtime, SQL or credential changes.
+No automatic apply is enabled here.
 
 The legacy required status `Bicep Lint / Bicep Lint` is still a fail-closed aggregate
 of Terraform validation and secret scanning. Do not change branch protection or

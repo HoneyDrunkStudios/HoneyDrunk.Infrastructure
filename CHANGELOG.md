@@ -5,12 +5,18 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+- Require an explicit clean secret-scan verdict in the Terraform aggregate gate; warning-only scanner success and missing verdicts cannot pass.
+
 - Preserve recovery after a resource block is removed: disable vault/App Configuration automatic purge and recovery, and Log Analytics permanent deletion.
+- Restore the five-key platform resource-ID output and define the missing isolated messaging backend/container grant. The seventeenth container is pending separate bootstrap approval and apply; the sixteen deployed containers are preserved.
+
+- Provision the approved Identity development app and SQL database in Central US while preserving the existing East US 2 estate. Delegate runtime activation/configuration to the Identity release process.
+- Manage scoped app egress and optional single-IP workstation SQL rules, workforce SQL administration, provider registration and Identity registry/vault grants.
+- Preserve the customer application's existing certificate while adopting the new public runtime key; keep private certificate material outside Terraform.
 
 - Adopt the existing development estate and linked workforce/customer identities with exact IDs, protected Azure state, runtime field ownership and explicit provider exceptions. Preserve app data, credentials, access and service names.
 - Extend the backend to sixteen isolated containers; verify scratch recovery and remote state migration. New Identity hosting/SQL/network deployments remain separate.
 - Add directory providers and complete mocked validation/ownership coverage; retire the duplicate Pulse access composition.
-- Restore the five-key platform resource-ID output and define the missing isolated messaging backend/container grant. The seventeenth container is pending separate bootstrap approval and apply; the sixteen deployed containers are preserved.
 
 
 ### Initial bootstrap source (superseded by adoption above)

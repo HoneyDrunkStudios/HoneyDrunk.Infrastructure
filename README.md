@@ -3,8 +3,8 @@
 Terraform source for the HoneyDrunk Azure development estate. Existing resources
 are adopted with their IDs, configuration, access and data preserved. The flow
 application association is checked for drift but cannot yet be written through the
-pinned provider; the disabled subscription remains inaccessible. New Identity
-hosting, SQL and networking remain a separate deployment decision.
+pinned provider; the disabled subscription remains inaccessible. The separately approved Identity development foundation is deployed; Central US
+hosts its B1 app and SQL database while the existing East US 2 estate is preserved.
 
 Start with [estate ownership and runtime exceptions](docs/terraform-adoption.md),
 [backend access and recovery](docs/terraform-state.md), and the exact
@@ -12,7 +12,8 @@ Start with [estate ownership and runtime exceptions](docs/terraform-adoption.md)
 reusable orchestration belongs in HoneyDrunk.Actions. There is no live apply workflow.
 
 `terraform-roots.json` enumerates 19 independent roots, including the existing
-estate, protected backend and seven proposed Identity/network/SQL roots. Reusable
+estate, protected backend, six deployed Identity/network/SQL roots and the
+unexecuted Identity messaging proposal. Reusable
 modules remain available for future resources. Development names, regions and
 legacy tags in adopted roots match the actual estate and are intentionally explicit.
 Do not apply those roots against an empty state or another environment.
@@ -36,5 +37,5 @@ and secret checks to succeed. Its name does not restore Bicep. Provider mocks an
 source checks are distinct from confidential live no-change-plan verification.
 Never upload state, saved plans, backend metadata or authenticated logs to CI.
 
-See [Identity initialization](nodes/identity/README.md) for the still-unexecuted
-first-release contract and [migration history](docs/terraform-migration.md).
+See [Identity initialization](nodes/identity/README.md) for the completed first-release boundary and remaining
+operational work and [migration history](docs/terraform-migration.md).

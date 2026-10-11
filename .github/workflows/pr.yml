@@ -2,7 +2,7 @@ name: PR
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, feat/adopt-existing-estate]
   workflow_dispatch: {}
 
 permissions:
@@ -40,4 +40,5 @@ jobs:
           results = json.loads(os.environ['RESULTS'])
           assert set(results) == {'terraform', 'secret-scan'}, 'Missing validation job'
           assert all(item['result'] == 'success' for item in results.values()), 'IaC validation failed, cancelled or skipped'
+          assert results['secret-scan'].get('outputs', {}).get('has-warnings') == 'false', 'Secret scan findings or missing verdict require review'
           print('Terraform format/schema/mocked tests, ownership contracts and secret scan passed.')

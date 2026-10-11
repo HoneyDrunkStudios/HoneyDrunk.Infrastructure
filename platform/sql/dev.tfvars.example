@@ -1,6 +1,6 @@
 # Copy outside the repository after approval. No credentials here.
 environment = "dev"
-location = "eastus2"
+location = "centralus"
 subscription_id = "<approved-subscription-uuid>"
 tenant_id = "<workforce-tenant-uuid>"
 administrator_name = "<approved-workforce-group-name>"

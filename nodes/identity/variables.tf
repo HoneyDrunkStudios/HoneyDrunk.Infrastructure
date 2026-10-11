@@ -21,21 +21,20 @@ variable "environment" {
 variable "location" {
   description = "Location."
   type        = string
-  default     = "eastus2"
+  default     = "centralus"
   validation {
-    condition     = var.location == "eastus2"
-    error_message = "The selected development design is East US 2."
+    condition     = var.location == "centralus"
+    error_message = "The selected development hosting region is Central US."
   }
 }
 
 variable "subnet_id" {
-  description = "Subnet id."
+  description = "No VNet integration for Central US hosting; preserve the existing East US 2 network."
   type        = string
-
-
+  default     = null
   validation {
-    condition     = lower(var.subnet_id) == lower("/subscriptions/${var.subscription_id}/resourceGroups/rg-hd-platform-${var.environment}/providers/Microsoft.Network/virtualNetworks/vnet-hd-apps-${var.environment}/subnets/snet-app-service")
-    error_message = "Use the convention-named shared development resource in the selected subscription."
+    condition     = var.subnet_id == null
+    error_message = "Central US Identity uses scoped SQL firewall access without cross-region VNet integration."
   }
 }
 

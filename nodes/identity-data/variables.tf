@@ -21,10 +21,10 @@ variable "environment" {
 variable "location" {
   description = "Location."
   type        = string
-  default     = "eastus2"
+  default     = "centralus"
   validation {
-    condition     = var.location == "eastus2"
-    error_message = "The selected development design is East US 2."
+    condition     = var.location == "centralus"
+    error_message = "The Identity database belongs to the Central US SQL server."
   }
 }
 

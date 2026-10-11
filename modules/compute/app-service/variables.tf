@@ -28,6 +28,6 @@ variable "plan_id" {
 }
 
 variable "subnet_id" {
-  description = "Subnet id."
+  description = "Approved same-region integration subnet, or explicit null for public egress."
   type        = string
 }

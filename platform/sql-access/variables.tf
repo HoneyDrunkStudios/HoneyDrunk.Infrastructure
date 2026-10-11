@@ -21,10 +21,10 @@ variable "environment" {
 variable "location" {
   description = "Location."
   type        = string
-  default     = "eastus2"
+  default     = "centralus"
   validation {
-    condition     = var.location == "eastus2"
-    error_message = "The selected development design is East US 2."
+    condition     = var.location == "centralus"
+    error_message = "Firewall rules target the approved Central US SQL server."
   }
 }
 
@@ -39,13 +39,12 @@ variable "server_id" {
   }
 }
 
-variable "subnet_id" {
-  description = "Subnet id."
+variable "app_name" {
+  description = "Exact Identity app selected in nodes/identity, including an approved collision suffix."
   type        = string
-
-
+  default     = "app-hd-identity-dev"
   validation {
-    condition     = lower(var.subnet_id) == lower("/subscriptions/${var.subscription_id}/resourceGroups/rg-hd-platform-${var.environment}/providers/Microsoft.Network/virtualNetworks/vnet-hd-apps-${var.environment}/subnets/snet-app-service")
-    error_message = "Use the convention-named shared development resource in the selected subscription."
+    condition     = can(regex("^app-hd-identity-dev(-[a-z0-9]{1,8})?$", var.app_name))
+    error_message = "Use the selected Identity/dev app name and only an approved collision suffix."
   }
 }

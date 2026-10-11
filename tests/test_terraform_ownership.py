@@ -24,11 +24,15 @@ class TerraformOwnershipTests(unittest.TestCase):
         script = textwrap.dedent(workflow.split('        run: |\n', 1)[1])
         for state in ['success', 'failure', 'cancelled', 'skipped']:
             result = subprocess.run([sys.executable, '-c', script], capture_output=True, text=True,
-                                    env={**os.environ, 'RESULTS': json.dumps({'terraform':{'result':state}, 'secret-scan':{'result':'success'}})})
+                                    env={**os.environ, 'RESULTS': json.dumps({'terraform':{'result':state}, 'secret-scan':{'result':'success', 'outputs':{'has-warnings':'false'}}})})
             self.assertEqual(result.returncode == 0, state == 'success')
         missing = subprocess.run([sys.executable, '-c', script], capture_output=True,
                                  env={**os.environ, 'RESULTS': '{}'})
         self.assertNotEqual(missing.returncode, 0)
+        for outputs in [{}, {'has-warnings': 'true'}, {'has-warnings': ''}]:
+            result = subprocess.run([sys.executable, '-c', script], capture_output=True,
+                                    env={**os.environ, 'RESULTS': json.dumps({'terraform': {'result': 'success'}, 'secret-scan': {'result': 'success', 'outputs': outputs}})})
+            self.assertNotEqual(result.returncode, 0, 'A successful warning-only scanner must not bypass the required gate')
 
     def test_existing_cost_and_recovery_tags_are_preserved(self):
         for root in ['identity', 'identity-data', 'identity-vault', 'identity-messaging']:
@@ -124,6 +128,11 @@ class TerraformOwnershipTests(unittest.TestCase):
                         self.assertNotEqual(body['lifecycle'][0].get('ignore_changes'), '${all}')
             expected = {item['address'] for item in manifest if item['root'] == root}
             self.assertEqual(set(declared), expected)
+
+    def test_imported_runtime_certificate_preserves_write_only_fields(self):
+        certificate = config('directory/customer-applications/runtime-certificate.tf')['resource'][0]['azuread_application_certificate']['identity_runtime_20261011']
+        self.assertTrue(certificate['lifecycle'][0]['prevent_destroy'])
+        self.assertEqual(set(certificate['lifecycle'][0]['ignore_changes']), {'${value}', '${encoding}'})
 
     def test_notify_secrets_stay_out_of_source(self):
         resources = config('nodes/notify/main.tf')['resource']
