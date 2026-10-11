@@ -38,3 +38,13 @@ variable "server_id" {
     error_message = "Use the convention-named shared development resource in the selected subscription."
   }
 }
+
+variable "app_name" {
+  description = "Exact Identity app selected in nodes/identity, including an approved collision suffix."
+  type        = string
+  default     = "app-hd-identity-dev"
+  validation {
+    condition     = can(regex("^app-hd-identity-dev(-[a-z0-9]{1,8})?$", var.app_name))
+    error_message = "Use the selected Identity/dev app name and only an approved collision suffix."
+  }
+}

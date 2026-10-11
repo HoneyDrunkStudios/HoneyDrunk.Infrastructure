@@ -112,6 +112,11 @@ class TerraformOwnershipTests(unittest.TestCase):
             expected = {item['address'] for item in manifest if item['root'] == root}
             self.assertEqual(set(declared), expected)
 
+    def test_imported_runtime_certificate_preserves_write_only_fields(self):
+        certificate = config('directory/customer-applications/runtime-certificate.tf')['resource'][0]['azuread_application_certificate']['identity_runtime_20261011']
+        self.assertTrue(certificate['lifecycle'][0]['prevent_destroy'])
+        self.assertEqual(set(certificate['lifecycle'][0]['ignore_changes']), {'${value}', '${encoding}'})
+
     def test_notify_secrets_stay_out_of_source(self):
         resources = config('nodes/notify/main.tf')['resource']
         app = next(r['azurerm_function_app_flex_consumption'] for r in resources if 'azurerm_function_app_flex_consumption' in r)['func_hd_notify_dev']

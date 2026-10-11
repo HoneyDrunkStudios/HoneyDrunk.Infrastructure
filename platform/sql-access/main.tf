@@ -14,7 +14,7 @@ locals {
 }
 
 data "azurerm_linux_web_app" "identity" {
-  name                = "app-hd-identity-${var.environment}"
+  name                = var.app_name
   resource_group_name = "rg-hd-identity-${var.environment}"
   lifecycle {
     postcondition {

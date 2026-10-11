@@ -4,3 +4,4 @@ location = "centralus"
 subscription_id = "<approved-subscription-uuid>"
 tenant_id = "<workforce-tenant-uuid>"
 server_id = "<approved-shared-sql-resource-id>"
+app_name = "app-hd-identity-dev" # Match nodes/identity exactly.

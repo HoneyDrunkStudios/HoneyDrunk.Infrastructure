@@ -135,3 +135,17 @@ run "malformed_nonblank_address_fails_closed" {
   }
   expect_failures = [azurerm_mssql_firewall_rule.identity_egress]
 }
+
+run "lookup_selected_collision_suffix" {
+  command = plan
+  variables { app_name = "app-hd-identity-dev-abc" }
+  assert {
+    condition     = data.azurerm_linux_web_app.identity.name == "app-hd-identity-dev-abc"
+    error_message = "Firewall lookup must use the selected hosting app, including its suffix."
+  }
+}
+run "reject_unrelated_app" {
+  command = plan
+  variables { app_name = "app-unrelated-dev" }
+  expect_failures = [var.app_name]
+}
