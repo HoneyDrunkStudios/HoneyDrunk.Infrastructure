@@ -47,6 +47,13 @@ overwritten. Resource groups are independent of application lifetime. System
 identities remain attached to their apps; no replacement service principal is
 created. Existing grant UUIDs, scopes, custom role and founder Owner access remain.
 
+Adopted vault providers disable automatic purge and automatic recovery. Platform
+App Configuration does the same, and Log Analytics disables permanent deletion.
+These provider safeguards remain effective if a resource block is later removed,
+when its prevent_destroy lifecycle no longer applies. Recovery/purge operations
+require their own explicit review; the developer App Configuration SKU itself
+has no soft-delete retention. No provider feature grants deletion authority.
+
 ## Runtime and provider exceptions
 
 - Pulse releases own image, environment, Key Vault references, revision suffix

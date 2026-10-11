@@ -5,6 +5,8 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+- Preserve recovery after a resource block is removed: disable vault/App Configuration automatic purge and recovery, and Log Analytics permanent deletion.
+
 - Adopt the existing development estate and linked workforce/customer identities with exact IDs, protected Azure state, runtime field ownership and explicit provider exceptions. Preserve app data, credentials, access and service names.
 - Extend the backend to sixteen isolated containers; verify scratch recovery and remote state migration. New Identity hosting/SQL/network deployments remain separate.
 - Add directory providers and complete mocked validation/ownership coverage; retire the duplicate Pulse access composition.

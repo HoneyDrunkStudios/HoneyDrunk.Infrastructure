@@ -14,5 +14,13 @@ provider "azurerm" {
   tenant_id                       = "f5654adb-2a4c-4317-9217-09ef32ccdd3a"
   resource_provider_registrations = "none"
   storage_use_azuread             = true
-  features {}
+  features {
+    app_configuration {
+      purge_soft_delete_on_destroy = false
+      recover_soft_deleted         = false
+    }
+    log_analytics_workspace {
+      permanently_delete_on_destroy = false
+    }
+  }
 }

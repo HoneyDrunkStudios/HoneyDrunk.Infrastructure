@@ -39,6 +39,19 @@ class TerraformOwnershipTests(unittest.TestCase):
         workspace = next(r['azurerm_log_analytics_workspace'] for r in platform if 'azurerm_log_analytics_workspace' in r)
         self.assertEqual(workspace['log_hd_shared_dev']['tags']['hd:dr-tier'], 'T1')
 
+    def test_adopted_recoverable_resources_never_automatically_purge(self):
+        # prevent_destroy disappears when a block is removed; provider behavior
+        # must still retain recovery instead of turning deletion into a purge.
+        for root in ['nodes/pulse-runtime', 'nodes/notify', 'nodes/automation']:
+            provider = config(f'{root}/versions.tf')['provider'][0]['azurerm']
+            vault = provider['features'][0]['key_vault'][0]
+            self.assertFalse(vault['purge_soft_delete_on_destroy'])
+            self.assertFalse(vault['recover_soft_deleted_key_vaults'])
+        features = config('platform/versions.tf')['provider'][0]['azurerm']['features'][0]
+        self.assertFalse(features['app_configuration'][0]['purge_soft_delete_on_destroy'])
+        self.assertFalse(features['app_configuration'][0]['recover_soft_deleted'])
+        self.assertFalse(features['log_analytics_workspace'][0]['permanently_delete_on_destroy'])
+
     def test_pulse_adoption_preserves_release_owned_fields(self):
         pulse = config('nodes/pulse-runtime/main.tf')['resource']
         app = next(r['azurerm_container_app'] for r in pulse if 'azurerm_container_app' in r)['ca_hd_pulse_dev']
