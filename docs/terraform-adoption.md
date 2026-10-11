@@ -23,6 +23,11 @@ provider's syntax; some differ from ARM IDs.
 | directory/customer | customer-directory-dev | dev/customer-directory.tfstate |
 | directory/customer-applications | customer-directory-dev | dev/customer-applications.tfstate |
 | directory/customer-flow | customer-directory-dev | dev/customer-flow.tfstate |
+| nodes/identity-messaging (pending backend) | identity-messaging-dev | dev/identity-messaging.tfstate |
+
+The messaging container and its operator grant are source-only additions, not
+deployed adoption. Review/apply the bootstrap addition separately before using
+that backend. Existing containers, state keys and grants are preserved.
 
 All use the protected `sthdtfstatedev` account. Customer roots share the same
 operator access boundary but have separate keys, locks and provider tenant

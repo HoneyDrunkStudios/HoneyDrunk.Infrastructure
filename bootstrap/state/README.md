@@ -4,6 +4,10 @@ This root owns the deployed state group/account, sixteen private containers,
 sixteen container-scoped operator grants, retention policy and deletion lock.
 It uses the existing Azure backend at `tfstate-bootstrap-dev/dev/bootstrap.tfstate`.
 
+Source also defines a seventeenth container and scoped grant for the unexecuted
+Identity messaging proposal. That addition has not been applied; review the exact
+bootstrap plan separately before initializing the messaging backend.
+
 The initial local bootstrap and scratch recovery probe completed before state
 migration. Do not rerun a create-only bootstrap against an empty state. The former
 local planning helper is retired. See [state configuration](../../docs/terraform-state.md)

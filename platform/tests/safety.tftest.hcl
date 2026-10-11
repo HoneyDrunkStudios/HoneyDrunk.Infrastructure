@@ -6,3 +6,14 @@ run "preserve_existing_contract" {
     error_message = "Existing deployment behavior or recovery access must be preserved."
   }
 }
+
+run "preserve_resource_ids_output" {
+  command = plan
+  assert {
+    condition = toset(keys(output.resource_ids)) == toset([
+      "log_analytics_workspace", "container_app_environment", "registry",
+      "app_configuration", "service_bus",
+    ])
+    error_message = "Consumers must retain the five non-secret platform ID keys."
+  }
+}

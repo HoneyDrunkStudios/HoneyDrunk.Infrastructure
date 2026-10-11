@@ -8,6 +8,7 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 - Adopt the existing development estate and linked workforce/customer identities with exact IDs, protected Azure state, runtime field ownership and explicit provider exceptions. Preserve app data, credentials, access and service names.
 - Extend the backend to sixteen isolated containers; verify scratch recovery and remote state migration. New Identity hosting/SQL/network deployments remain separate.
 - Add directory providers and complete mocked validation/ownership coverage; retire the duplicate Pulse access composition.
+- Restore the five-key platform resource-ID output and define the missing isolated messaging backend/container grant. The seventeenth container is pending separate bootstrap approval and apply; the sixteen deployed containers are preserved.
 
 
 ### Initial bootstrap source (superseded by adoption above)
