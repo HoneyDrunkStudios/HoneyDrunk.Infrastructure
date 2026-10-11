@@ -11,6 +11,7 @@ locals {
 }
 
 module "network" {
+  depends_on          = [azurerm_resource_provider_registration.network]
   source              = "../../modules/networking/app-service"
   name                = "vnet-hd-apps-${var.environment}"
   resource_group_name = local.platform_group

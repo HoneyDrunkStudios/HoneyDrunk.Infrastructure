@@ -26,3 +26,18 @@ run "reject_wrong_workspace_id" {
   variables { workspace_id = "/subscriptions/00000000-0000-4000-8000-000000000099/resourceGroups/wrong/providers/Example/wrong" }
   expect_failures = [var.workspace_id]
 }
+run "no_bootstrap_access_by_default" {
+  command = plan
+  assert {
+    condition     = length(azurerm_role_assignment.certificate_installation) == 0
+    error_message = "Operator secret write access must be explicitly selected."
+  }
+}
+run "one_temporary_secret_installer" {
+  command = plan
+  variables { bootstrap_operator_object_id = "00000000-0000-4000-8000-000000000003" }
+  assert {
+    condition     = length(azurerm_role_assignment.certificate_installation) == 1 && azurerm_role_assignment.certificate_installation["operator"].role_definition_name == "Key Vault Secrets Officer" && azurerm_role_assignment.certificate_installation["operator"].principal_id == var.bootstrap_operator_object_id
+    error_message = "Only the reviewed operator may receive the explicit temporary secret installation grant."
+  }
+}

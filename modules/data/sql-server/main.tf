@@ -5,8 +5,8 @@ resource "azurerm_mssql_server" "this" {
   tags                = var.tags
   version             = "12.0"
   minimum_tls_version = "1.2"
-  # Required for classic Microsoft.Sql service endpoints; absence of firewall
-  # rules denies public clients. Never add AllowAllWindowsAzureIps.
+  # Public endpoint supports scoped per-IP firewall rules; absence of rules
+  # denies public clients. Never add AllowAllWindowsAzureIps.
   public_network_access_enabled = true
   azuread_administrator {
     login_username              = var.administrator_name

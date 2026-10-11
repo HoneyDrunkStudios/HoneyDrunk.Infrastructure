@@ -21,10 +21,10 @@ variable "environment" {
 variable "location" {
   description = "Location."
   type        = string
-  default     = "eastus2"
+  default     = "centralus"
   validation {
-    condition     = var.location == "eastus2"
-    error_message = "The selected development design is East US 2."
+    condition     = var.location == "centralus"
+    error_message = "The approved development SQL server is in Central US; other services remain in East US 2."
   }
 }
 
@@ -34,6 +34,7 @@ variable "administrator_name" {
 }
 
 variable "administrator_object_id" {
-  description = "Administrator object id."
+  description = "Existing administrator object ID, or null when creating the administrator group."
   type        = string
+  default     = null
 }

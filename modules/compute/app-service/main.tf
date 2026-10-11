@@ -18,7 +18,7 @@ resource "azurerm_linux_web_app" "this" {
     ftps_state                              = "Disabled"
     minimum_tls_version                     = "1.2"
     scm_minimum_tls_version                 = "1.2"
-    vnet_route_all_enabled                  = true
+    vnet_route_all_enabled                  = var.subnet_id != null
     container_registry_use_managed_identity = true
     health_check_path                       = "/"
     health_check_eviction_time_in_min       = 2

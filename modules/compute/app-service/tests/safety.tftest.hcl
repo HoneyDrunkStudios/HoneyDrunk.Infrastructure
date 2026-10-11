@@ -36,3 +36,12 @@ run "reject_missing_tags" {
   }
   expect_failures = [var.tags]
 }
+
+run "scoped_public_egress_without_integration" {
+  command = plan
+  variables { subnet_id = null }
+  assert {
+    condition     = azurerm_linux_web_app.this.virtual_network_subnet_id == null && !azurerm_linux_web_app.this.site_config[0].vnet_route_all_enabled && !azurerm_linux_web_app.this.enabled
+    error_message = "Without a subnet, public egress must not enable VNet routing or start the placeholder."
+  }
+}

@@ -5,6 +5,10 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+- Provision the approved Identity development app and SQL database in Central US while preserving the existing East US 2 estate. Delegate runtime activation/configuration to the Identity release process.
+- Manage scoped app egress and optional single-IP workstation SQL rules, workforce SQL administration, provider registration and Identity registry/vault grants.
+- Preserve the customer application's existing certificate while adopting the new public runtime key; keep private certificate material outside Terraform.
+
 - Adopt the existing development estate and linked workforce/customer identities with exact IDs, protected Azure state, runtime field ownership and explicit provider exceptions. Preserve app data, credentials, access and service names.
 - Extend the backend to sixteen isolated containers; verify scratch recovery and remote state migration. New Identity hosting/SQL/network deployments remain separate.
 - Add directory providers and complete mocked validation/ownership coverage; retire the duplicate Pulse access composition.

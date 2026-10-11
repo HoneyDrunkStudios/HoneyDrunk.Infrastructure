@@ -21,10 +21,10 @@ variable "environment" {
 variable "location" {
   description = "Location."
   type        = string
-  default     = "eastus2"
+  default     = "centralus"
   validation {
-    condition     = var.location == "eastus2"
-    error_message = "The selected development design is East US 2."
+    condition     = var.location == "centralus"
+    error_message = "Firewall rules target the approved Central US SQL server."
   }
 }
 
@@ -35,17 +35,6 @@ variable "server_id" {
 
   validation {
     condition     = lower(var.server_id) == lower("/subscriptions/${var.subscription_id}/resourceGroups/rg-hd-platform-${var.environment}/providers/Microsoft.Sql/servers/sql-hd-shared-${var.environment}")
-    error_message = "Use the convention-named shared development resource in the selected subscription."
-  }
-}
-
-variable "subnet_id" {
-  description = "Subnet id."
-  type        = string
-
-
-  validation {
-    condition     = lower(var.subnet_id) == lower("/subscriptions/${var.subscription_id}/resourceGroups/rg-hd-platform-${var.environment}/providers/Microsoft.Network/virtualNetworks/vnet-hd-apps-${var.environment}/subnets/snet-app-service")
     error_message = "Use the convention-named shared development resource in the selected subscription."
   }
 }
