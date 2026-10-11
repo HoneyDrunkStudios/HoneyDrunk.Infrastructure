@@ -5,6 +5,8 @@ recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/en/1
 
 ## [Unreleased]
 
+- Require an explicit clean secret-scan verdict in the Terraform aggregate gate; warning-only scanner success and missing verdicts cannot pass.
+
 - Preserve recovery after a resource block is removed: disable vault/App Configuration automatic purge and recovery, and Log Analytics permanent deletion.
 - Restore the five-key platform resource-ID output and define the missing isolated messaging backend/container grant. The seventeenth container is pending separate bootstrap approval and apply; the sixteen deployed containers are preserved.
 

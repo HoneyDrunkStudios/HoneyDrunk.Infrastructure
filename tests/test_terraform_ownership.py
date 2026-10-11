@@ -24,11 +24,15 @@ class TerraformOwnershipTests(unittest.TestCase):
         script = textwrap.dedent(workflow.split('        run: |\n', 1)[1])
         for state in ['success', 'failure', 'cancelled', 'skipped']:
             result = subprocess.run([sys.executable, '-c', script], capture_output=True, text=True,
-                                    env={**os.environ, 'RESULTS': json.dumps({'terraform':{'result':state}, 'secret-scan':{'result':'success'}})})
+                                    env={**os.environ, 'RESULTS': json.dumps({'terraform':{'result':state}, 'secret-scan':{'result':'success', 'outputs':{'has-warnings':'false'}}})})
             self.assertEqual(result.returncode == 0, state == 'success')
         missing = subprocess.run([sys.executable, '-c', script], capture_output=True,
                                  env={**os.environ, 'RESULTS': '{}'})
         self.assertNotEqual(missing.returncode, 0)
+        for outputs in [{}, {'has-warnings': 'true'}, {'has-warnings': ''}]:
+            result = subprocess.run([sys.executable, '-c', script], capture_output=True,
+                                    env={**os.environ, 'RESULTS': json.dumps({'terraform': {'result': 'success'}, 'secret-scan': {'result': 'success', 'outputs': outputs}})})
+            self.assertNotEqual(result.returncode, 0, 'A successful warning-only scanner must not bypass the required gate')
 
     def test_existing_cost_and_recovery_tags_are_preserved(self):
         for root in ['identity', 'identity-data', 'identity-vault', 'identity-messaging']:
