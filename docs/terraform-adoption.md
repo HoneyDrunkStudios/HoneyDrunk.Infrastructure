@@ -71,6 +71,9 @@ has no soft-delete retention. No provider feature grants deletion authority.
   identity casing is ignored because Azure returns `system` while AzureRM requires
   `System`; the registry server and other ingress settings remain managed.
 - Notify releases own app settings/package and deployment storage credentials.
+  Its source now selects the .NET 11 isolated runtime to match the upgraded worker;
+  coordinate any separately authorized runtime update with that package deployment.
+  This source change does not establish a live upgrade or authorize apply.
   Terraform manages the FC1 plan, Flex app, system identity, scale, storage,
   containers, queue, vault and Insights. Source obtains the existing storage key
   and Insights connection string through resource references, never literals.

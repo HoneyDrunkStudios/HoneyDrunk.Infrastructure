@@ -151,7 +151,7 @@ resource "azurerm_function_app_flex_consumption" "func_hd_notify_dev" {
   public_network_access_enabled      = true
   resource_group_name                = "rg-hd-notify-dev"
   runtime_name                       = "dotnet-isolated"
-  runtime_version                    = "10.0"
+  runtime_version                    = "11.0"
   service_plan_id                    = "/subscriptions/82073da5-bd6d-4874-947e-73b791054cbc/resourceGroups/rg-hd-notify-dev/providers/Microsoft.Web/serverFarms/ASP-rghdnotifydev-898e"
   storage_access_key                 = azurerm_storage_account.sthdnotifydev.primary_access_key
   storage_authentication_type        = "StorageAccountConnectionString"

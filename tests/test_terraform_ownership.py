@@ -137,6 +137,8 @@ class TerraformOwnershipTests(unittest.TestCase):
     def test_notify_secrets_stay_out_of_source(self):
         resources = config('nodes/notify/main.tf')['resource']
         app = next(r['azurerm_function_app_flex_consumption'] for r in resources if 'azurerm_function_app_flex_consumption' in r)['func_hd_notify_dev']
+        self.assertEqual(app['runtime_name'], 'dotnet-isolated')
+        self.assertEqual(app['runtime_version'], '11.0')
         self.assertEqual(app['app_settings'], {})
         self.assertEqual(app['storage_access_key'], '${azurerm_storage_account.sthdnotifydev.primary_access_key}')
         self.assertIn('${app_settings}', app['lifecycle'][0]['ignore_changes'])
